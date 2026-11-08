@@ -47,4 +47,5 @@ export async function calculateDetour(geo: GeoProvider, base: Route, origin: Lat
   }
 }
 
-export const MAX_AUTO_DETOURS = 5;
+/** Free routing servers ask for under 1 request/second, so only a few detours are checked automatically. */
+export const MAX_AUTO_DETOURS = 3;

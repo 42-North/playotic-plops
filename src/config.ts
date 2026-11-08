@@ -1,4 +1,6 @@
 export type DataMode = 'demo' | 'live';
+/** osm = free keyless OpenStreetMap services (default for live). geoapify = optional keyed provider. demo = offline sample geography. */
+export type GeoProviderName = 'osm' | 'geoapify' | 'demo';
 
 export interface AppConfig {
   mode: DataMode;
@@ -8,6 +10,7 @@ export interface AppConfig {
   supabaseKey: string;
   turnstileSiteKey: string;
   geoapifyKey: string;
+  geoProvider: GeoProviderName;
   mapStyleUrl: string;
   recolorMap: boolean;
   defaultCenter: { lat: number; lng: number };
@@ -36,7 +39,6 @@ export function resolveConfig(env: Env): AppConfig {
       !supabaseUrl && 'VITE_SUPABASE_URL',
       !supabaseKey && 'VITE_SUPABASE_PUBLISHABLE_KEY',
       !turnstileSiteKey && 'VITE_TURNSTILE_SITE_KEY',
-      !geoapifyKey && 'VITE_GEOAPIFY_KEY',
     ].filter(Boolean);
     if (missing.length) configError = `Live mode is missing configuration: ${missing.join(', ')}.`;
     else if (!/^https:\/\//.test(supabaseUrl) && !/^http:\/\/(localhost|127\.0\.0\.1)/.test(supabaseUrl)) {
@@ -48,6 +50,14 @@ export function resolveConfig(env: Env): AppConfig {
     }
   }
 
+  const requestedGeo = str(env.VITE_GEO_PROVIDER).toLowerCase();
+  const geoProvider: GeoProviderName =
+    requestedGeo === 'osm' || requestedGeo === 'geoapify' || requestedGeo === 'demo'
+      ? requestedGeo
+      : mode === 'live' ? 'osm' : 'demo';
+  if (mode === 'live' && geoProvider === 'demo') configError ??= 'VITE_GEO_PROVIDER=demo cannot be used in live mode.';
+  if (geoProvider === 'geoapify' && !geoapifyKey) configError ??= 'VITE_GEO_PROVIDER=geoapify needs VITE_GEOAPIFY_KEY.';
+
   const center = str(env.VITE_DEFAULT_CENTER).split(',').map(Number);
   const hasCenter = center.length === 2 && center.every(Number.isFinite);
 
@@ -58,6 +68,7 @@ export function resolveConfig(env: Env): AppConfig {
     supabaseKey,
     turnstileSiteKey,
     geoapifyKey,
+    geoProvider,
     mapStyleUrl: str(env.VITE_MAP_STYLE_URL) || 'https://tiles.openfreemap.org/styles/positron',
     recolorMap: str(env.VITE_MAP_RECOLOR) !== 'false',
     defaultCenter: hasCenter

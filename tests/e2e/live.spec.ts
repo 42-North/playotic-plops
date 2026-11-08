@@ -1,5 +1,5 @@
 // Live-mode build against the local Supabase stand-in (real migration on real Postgres,
-// real Edge Function handler). Turnstile and Geoapify are stubbed at the network layer.
+// real Edge Function handler). Turnstile, Nominatim and the routing server are stubbed at the network layer.
 import { expect, test, type Page } from '@playwright/test';
 import { offlineMap, shotDir } from './helpers';
 
@@ -11,12 +11,11 @@ async function stubs(page: Page) {
     contentType: 'text/javascript',
     body: `window.turnstile = { render(el, o) { this.o = o; return 'w1'; }, execute() { setTimeout(() => this.o.callback('stub-turnstile-token-' + Date.now()), 10); }, reset() {}, remove() {} };`,
   }));
-  await page.route('https://api.geoapify.com/v1/geocode/search**', (r) => r.fulfill({ json: { results: [{ lat: 34.05, lon: -101.5, address_line1: 'Testville, TX', address_line2: 'United States' }] } }));
-  await page.route('https://api.geoapify.com/v1/geocode/reverse**', (r) => r.fulfill({ json: { results: [] } }));
-  await page.route('https://api.geoapify.com/v1/routing**', (r) => {
-    const wp = new URL(r.request().url()).searchParams.get('waypoints')!.split('|');
-    const via = wp.length === 3;
-    r.fulfill({ json: { features: [{ geometry: { type: 'MultiLineString', coordinates: [[[-101.5, 33.9], [-101.5, 34.2]]] }, properties: { distance: 33_000, time: via ? 1800 + 300 : 1800 } }] } });
+  await page.route('https://nominatim.openstreetmap.org/search**', (r) => r.fulfill({ json: [{ lat: '34.05', lon: '-101.5', display_name: 'Testville, Hale County, Texas, United States' }] }));
+  await page.route('https://nominatim.openstreetmap.org/reverse**', (r) => r.fulfill({ json: {} }));
+  await page.route('https://routing.openstreetmap.de/**', (r) => {
+    const via = decodeURIComponent(new URL(r.request().url()).pathname).split(';').length === 3;
+    r.fulfill({ json: { code: 'Ok', routes: [{ geometry: { type: 'LineString', coordinates: [[-101.5, 33.9], [-101.5, 34.2]] }, distance: 33_000, duration: via ? 1800 + 300 : 1800 }] } });
   });
 }
 

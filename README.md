@@ -4,7 +4,7 @@
 
 - **Frontend:** React + TypeScript + Vite, MapLibre GL, hash routing. Static, hosted on GitHub Pages.
 - **Backend:** Supabase Postgres (schema, RLS, functions) and one Supabase Edge Function (`plops`) for all writes.
-- **Providers:** OpenFreeMap tiles (no key), Geoapify geocoding + routing (key), Cloudflare Turnstile spam check (key).
+- **Providers, all $0 with no credits or metered tokens:** OpenFreeMap tiles, Nominatim address search, FOSSGIS OSRM driving routes (all keyless OpenStreetMap services), Cloudflare Turnstile spam check (free, unlimited), Supabase Free plan, GitHub Pages.
 - **Demo mode:** fictional stops in memory, clearly labelled. Used when no backend is configured. A build set to live mode never falls back to demo data; it shows a configuration error instead.
 
 ---
@@ -13,10 +13,9 @@
 
 1. **Supabase:** create a project → `supabase link` → `supabase db push` (applies the migration).
 2. **Turnstile:** create a widget for `YOUR-USER.github.io` (and `localhost`) → note site key + secret key.
-3. **Geoapify:** create a project/API key → restrict allowed origins to `https://YOUR-USER.github.io`.
-4. **Edge Function:** set secrets (`PLOPS_HASH_SECRET`, `ALLOWED_ORIGINS`, `TURNSTILE_SECRET_KEY`) → `supabase functions deploy plops --no-verify-jwt`.
-5. **GitHub:** push the repo → Settings → Pages → Source: **GitHub Actions** → Settings → Secrets and variables → Actions → **Variables**: `PLOPS_DATA_MODE=live`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_TURNSTILE_SITE_KEY`, `VITE_GEOAPIFY_KEY` → re-run the workflow.
-6. Open `https://YOUR-USER.github.io/REPO/`, add a test stop, rate it from a private window, then hide it with the moderation SQL below.
+3. **Edge Function:** set secrets (`PLOPS_HASH_SECRET`, `ALLOWED_ORIGINS`, `TURNSTILE_SECRET_KEY`) → `supabase functions deploy plops --no-verify-jwt`.
+4. **GitHub:** push the repo (public) → Settings → Pages → Source: **GitHub Actions** → Settings → Secrets and variables → Actions → **Variables**: `PLOPS_DATA_MODE=live`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_TURNSTILE_SITE_KEY` → re-run the workflow.
+5. Open `https://YOUR-USER.github.io/REPO/`, add a test stop, rate it from a private window, then hide it with the moderation SQL below.
 
 Details for each step follow.
 
@@ -43,12 +42,12 @@ npm run check:functions                                                        #
 npm run build && npx playwright test   # browser tests of the demo build served under /playotic-plops/
 ```
 
-Full live-mode browser test (uses `scripts/local-backend.mjs`, a **test-only** stand-in for Supabase that runs the real migration on local Postgres and the real Edge Function handler; Turnstile and Geoapify are stubbed):
+Full live-mode browser test (uses `scripts/local-backend.mjs`, a **test-only** stand-in for Supabase that runs the real migration on local Postgres and the real Edge Function handler; Turnstile, Nominatim and the routing server are stubbed):
 
 ```bash
 createdb plops_e2e && psql plops_e2e -f tests/db/supabase-roles.sql -f supabase/migrations/*.sql
 VITE_DATA_MODE=live VITE_SUPABASE_URL=http://localhost:54321 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_local \
-  VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA VITE_GEOAPIFY_KEY=test npx vite build --outDir dist-live
+  VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA npx vite build --outDir dist-live
 PLOPS_E2E_LIVE=1 PLOPS_DB_URL='postgres://postgres@localhost/plops_e2e' npx playwright test
 ```
 
@@ -98,15 +97,22 @@ Rate limits (in `core.ts`, `RATE_LIMITS`): new stops 5/day per identity and 15/d
 
 ---
 
-## Provider setup, quotas and attribution
+## Cost: everything is $0
 
-Checked against the providers' own pages in November 2026. Quotas change; check before relying on them. Nothing here is a promise of permanent free hosting.
+Checked against the providers' own pages in November 2026. Policies change; nothing here is a promise of permanent free hosting. None of these services meter usage in credits or tokens, and none needs a payment method.
 
-- **Supabase** — Free plan: 2 active projects, 500 MB database, 500,000 Edge Function invocations/month, 5 GB egress. Free projects can be **paused after about a week of low activity**; un-pause from the dashboard. No credit card needed for Free. Supabase is deprecating legacy `anon`/`service_role` keys by end of 2026; this app uses publishable/secret keys (and falls back to the legacy service key inside the function if that's all you have).
-- **Cloudflare Turnstile** — free; up to 20 widgets per account, 10 hostnames per widget. Create a widget (Managed mode) in the Cloudflare dashboard → Turnstile, add hostname `YOUR-USER.github.io` (and `localhost` for development). Site key → `VITE_TURNSTILE_SITE_KEY`; secret key → Supabase secret `TURNSTILE_SECRET_KEY`. The script loads only when someone submits something.
-- **Geoapify** — Free plan: 3,000 credits/day, up to 5 requests/second, commercial use allowed, no card required. Geocoding = 1 credit per request; routing = 1 credit per waypoint pair (+1 per 500 km). A route search costs 1 credit plus up to 5 detour checks of 2 credits each. **Attribution:** a "Powered by Geoapify" link is shown beside search results and route summaries, and in the map attribution. In the Geoapify project, restrict the API key to your site's origin. The key is visible in the browser bundle by design; origin restriction limits misuse, and requests are cached in memory and spaced out client-side.
-- **OpenFreeMap** — public tile instance, no key, no registration, no stated usage limits and **no SLA**. Attribution (OpenFreeMap, © OpenMapTiles, OpenStreetMap contributors) is shown by MapLibre automatically. The style is recoloured to the cocoa palette at runtime. Set `VITE_MAP_STYLE_URL` to switch tile providers.
-- **GitHub Pages** — free for public repositories; usage limits apply (soft bandwidth limit).
+| Service | What it does | Cost / account | Limits that matter |
+|---|---|---|---|
+| **GitHub Pages** | hosts the site | free for public repos | soft bandwidth limit |
+| **Supabase Free plan** | database + Edge Function | free, no payment method needed | 500 MB database, 500,000 function calls/month, 5 GB egress. **Projects pause after about a week of low activity** (un-pause in the dashboard). Going over quota leads to restrictions (read-only, paused), not charges, as long as you stay on the Free plan. Don't upgrade or add a card. |
+| **Cloudflare Turnstile** | spam check on submissions | free, unlimited challenges; needs a free Cloudflare account | 20 widgets per account |
+| **OpenFreeMap** | map tiles | free, no key, no account | no stated limits, no SLA |
+| **Nominatim** (nominatim.openstreetmap.org) | address search | free, no key, no account | **under 1 request/second for the whole app**, no autocomplete, attribution required |
+| **FOSSGIS OSRM** (routing.openstreetmap.de) | driving routes and detour times | free, no key, no account | **max 1 request/second**, no heavy use; route requests are logged by the server |
+
+How the app stays within the free services' rules: address search runs only when you press Search (no type-ahead), results are cached in memory, each browser spaces requests at least 1.1 seconds apart, at most 3 detours are checked automatically per route (more on tap), and attribution is shown beside results and on the map.
+
+The honest catch: Nominatim's limit applies to all of your visitors combined, and the community servers can block heavy users. That's fine for a small project. If the site ever gets busy, switch search/routing with `VITE_GEO_PROVIDER` (Geoapify support is still built in: free daily credits, key required), or self-host Nominatim/OSRM. Browsing, ratings and the database keep working either way; only search and route planning depend on these services.
 
 ---
 
@@ -116,7 +122,7 @@ Checked against the providers' own pages in November 2026. Quotas change; check 
 2. **Settings → Pages → Build and deployment → Source: GitHub Actions.**
 3. **Settings → Secrets and variables → Actions → Variables** (these are public values, so Variables is fine):
    - `PLOPS_DATA_MODE` = `live` (leave unset or `demo` for a demo site)
-   - `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_TURNSTILE_SITE_KEY`, `VITE_GEOAPIFY_KEY`
+   - `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_TURNSTILE_SITE_KEY`
 4. Re-run the workflow. The site is at `https://YOUR-USER.github.io/REPO/`.
 
 Assets use relative paths and routes use hash URLs (`…/REPO/#/stop/<id>`), so the site works under any repository subpath and direct links/refreshes work. A Content-Security-Policy meta tag limits scripts and connections to the services above.

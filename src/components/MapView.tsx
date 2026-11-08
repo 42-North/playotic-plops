@@ -70,7 +70,12 @@ export default function MapView(props: MapViewProps) {
         m.addControl(
           new ml.AttributionControl({
             compact: true,
-            customAttribution: config.mode === 'live' ? '<a href="https://www.geoapify.com/" target="_blank" rel="noopener">Search &amp; routes: Geoapify</a>' : undefined,
+            customAttribution:
+              config.geoProvider === 'osm'
+                ? '<a href="https://nominatim.org/" target="_blank" rel="noopener">Search: Nominatim</a> · <a href="https://routing.openstreetmap.de/" target="_blank" rel="noopener">Routes: OSRM/FOSSGIS</a>'
+                : config.geoProvider === 'geoapify'
+                  ? '<a href="https://www.geoapify.com/" target="_blank" rel="noopener">Search &amp; routes: Geoapify</a>'
+                  : undefined,
           }),
           'bottom-right',
         );

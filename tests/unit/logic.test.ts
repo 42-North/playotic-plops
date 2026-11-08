@@ -5,6 +5,7 @@ import { resolveConfig } from '../../src/config';
 import { createDemoApi } from '../../src/demo/demoApi';
 import { roundOne } from '../../src/demo/aggregate';
 import { createDemoGeo } from '../../src/geo/demoGeo';
+import { createOsmGeo } from '../../src/geo/osm';
 import type { GeoProvider, Route } from '../../src/geo/provider';
 import { corridorBoxes, haversineM, projectOntoRoute } from '../../src/lib/geo';
 import { detourLabel, straightLine } from '../../src/lib/format';
@@ -27,8 +28,11 @@ describe('configuration', () => {
     expect(c.configError).toMatch(/VITE_SUPABASE_URL/);
   });
   it('accepts a complete live configuration and rejects secret keys in the browser', () => {
-    const base = { VITE_DATA_MODE: 'live', VITE_SUPABASE_URL: 'https://abc.supabase.co', VITE_TURNSTILE_SITE_KEY: '0x4AAA', VITE_GEOAPIFY_KEY: 'g' };
-    expect(resolveConfig({ ...base, VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_abc' }).configError).toBeNull();
+    const base = { VITE_DATA_MODE: 'live', VITE_SUPABASE_URL: 'https://abc.supabase.co', VITE_TURNSTILE_SITE_KEY: '0x4AAA' };
+    const ok = resolveConfig({ ...base, VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_abc' });
+    expect(ok.configError).toBeNull();
+    expect(ok.geoProvider).toBe('osm'); // free, keyless search and routing by default
+    expect(resolveConfig({ ...base, VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_abc', VITE_GEO_PROVIDER: 'geoapify' }).configError).toMatch(/GEOAPIFY_KEY/);
     expect(resolveConfig({ ...base, VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_secret_abc' }).configError).toMatch(/secret/);
     const jwt = `eyJhbGciOiJIUzI1NiJ9.${btoa(JSON.stringify({ role: 'service_role' }))}.sig`;
     expect(resolveConfig({ ...base, VITE_SUPABASE_PUBLISHABLE_KEY: jwt }).configError).toMatch(/secret/);
@@ -188,5 +192,43 @@ describe('live API client', () => {
     expect(body).toMatchObject({ action: 'rate', challenge: 'turnstile-token', stop_id: 'stop-1', rating: 4 });
     expect(body.token).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(String(f.mock.calls[0][0])).toBe('https://abc.supabase.co/functions/v1/plops');
+  });
+});
+
+describe('free OpenStreetMap provider', () => {
+  it('geocodes via Nominatim on request, caches, and needs no key', async () => {
+    const f = vi.fn(async (_u: RequestInfo | URL, _i?: RequestInit) => new Response(JSON.stringify([{ lat: '31.5493', lon: '-97.1467', display_name: 'Waco, McLennan County, Texas, United States' }])));
+    const g = createOsmGeo(f as typeof fetch, 0);
+    const r = await g.geocode('Waco');
+    expect(r[0]).toMatchObject({ lat: 31.5493, lng: -97.1467, label: 'Waco, McLennan County' });
+    await g.geocode('waco');
+    expect(f).toHaveBeenCalledTimes(1); // cached
+    const url = new URL(String(f.mock.calls[0][0]));
+    expect(url.origin).toBe('https://nominatim.openstreetmap.org');
+    expect(url.searchParams.get('countrycodes')).toBe('us');
+    expect([...url.searchParams.keys()]).not.toContain('apiKey');
+  });
+
+  it('routes via the FOSSGIS OSRM server and returns real distance and duration', async () => {
+    const f = vi.fn(async (_u: RequestInfo | URL) => new Response(JSON.stringify({ code: 'Ok', routes: [{ geometry: { coordinates: [[-97, 30], [-97, 31]] }, distance: 111_000, duration: 4000 }] })));
+    const g = createOsmGeo(f as typeof fetch, 0);
+    const route = await g.route([{ lat: 30, lng: -97 }, { lat: 31, lng: -97 }]);
+    expect(route).toMatchObject({ distanceM: 111_000, durationS: 4000, source: 'routing' });
+    expect(route.coords[1]).toEqual({ lat: 31, lng: -97 });
+    expect(String(f.mock.calls[0][0])).toMatch(/^https:\/\/routing\.openstreetmap\.de\/routed-car\/route\/v1\/driving\/-97\.00000,30\.00000;-97\.00000,31\.00000\?/);
+  });
+
+  it('spaces requests at least ~1 second apart, as the free services require', async () => {
+    const times: number[] = [];
+    const f = vi.fn(async () => { times.push(Date.now()); return new Response('[]'); });
+    const g = createOsmGeo(f as unknown as typeof fetch, 300);
+    await Promise.all([g.geocode('aa'), g.geocode('bb'), g.geocode('cc')]);
+    expect(times[1] - times[0]).toBeGreaterThanOrEqual(290);
+    expect(times[2] - times[1]).toBeGreaterThanOrEqual(290);
+  });
+
+  it('reports busy servers plainly', async () => {
+    const g = createOsmGeo((async () => new Response('', { status: 429 })) as typeof fetch, 0);
+    await expect(g.geocode('Waco')).rejects.toThrow(/busy/);
   });
 });

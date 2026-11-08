@@ -18,7 +18,7 @@ function csp(env: Record<string, string>): Plugin {
     "style-src 'self' 'unsafe-inline'",
     `img-src 'self' data: blob: ${tiles}`,
     "font-src 'self'",
-    `connect-src 'self' ${[supabase, tiles, 'https://api.geoapify.com'].filter(Boolean).join(' ')}`,
+    `connect-src 'self' ${[supabase, tiles, 'https://nominatim.openstreetmap.org', 'https://routing.openstreetmap.de', env.VITE_GEO_PROVIDER === 'geoapify' ? 'https://api.geoapify.com' : ''].filter(Boolean).join(' ')}`,
     'frame-src https://challenges.cloudflare.com',
     "worker-src 'self' blob:",
     "child-src 'self' blob:",
