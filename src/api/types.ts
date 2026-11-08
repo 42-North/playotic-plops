@@ -120,4 +120,6 @@ export interface Api {
   submitRating(stopId: string, input: RatingInput, challenge: string): Promise<WriteResult & { updated: boolean }>;
   setAgreement(stopId: string, vote: 'agree' | 'disagree' | 'none', challenge: string): Promise<WriteResult>;
   report(stopId: string, ratingId: string | null, reason: ReportReason, details: string, challenge: string): Promise<WriteResult>;
+  /** Exact US street-address lookup through the backend (live mode only). */
+  lookupAddress?(address: string): Promise<{ lat: number; lng: number; label: string; detail?: string }[]>;
 }

@@ -5,6 +5,7 @@
 // under 1 request per second, no autocomplete, identification (browser Referer) and attribution.
 // So: searches run only on submit, results are cached in memory, and requests are spaced out.
 // Nothing is written to browser storage.
+import { looksLikeStreetAddress, parseUsAddress, stripUnit } from '../lib/address';
 import type { LatLng } from '../lib/geo';
 import { GeoError, type GeoProvider, type Place, type Route } from './provider';
 
@@ -13,7 +14,10 @@ export const FOSSGIS_ROUTING = 'https://routing.openstreetmap.de/routed-car';
 
 const r5 = (n: number) => n.toFixed(5);
 
-export function createOsmGeo(fetchImpl: typeof fetch = (...a) => fetch(...a), minGapMs = 1100): GeoProvider {
+/** Optional exact-address lookup (US Census geocoder, via the Playotic Plops backend). */
+export type AddressLookup = (address: string) => Promise<Place[]>;
+
+export function createOsmGeo(fetchImpl: typeof fetch = (...a) => fetch(...a), minGapMs = 1100, addressLookup?: AddressLookup): GeoProvider {
   const geoCache = new Map<string, Place[]>();
   const routeCache = new Map<string, Route>();
   let queue: Promise<unknown> = Promise.resolve();
@@ -63,17 +67,44 @@ export function createOsmGeo(fetchImpl: typeof fetch = (...a) => fetch(...a), mi
       const key = q.toLowerCase();
       const hit = geoCache.get(key);
       if (hit) return hit;
-      const p = new URLSearchParams({ q, format: 'jsonv2', limit: '5', countrycodes: 'us', addressdetails: '0' });
-      if (near) {
-        const d = 1.5;
-        p.set('viewbox', `${near.lng - d},${near.lat + d},${near.lng + d},${near.lat - d}`); // a hint, not a filter
+
+      const viewbox = near ? `${near.lng - 1.5},${near.lat + 1.5},${near.lng + 1.5},${near.lat - 1.5}` : undefined; // a hint, not a filter
+      const search = async (params: Record<string, string>, approximate?: Place['approximate']) => {
+        const p = new URLSearchParams({ ...params, format: 'jsonv2', limit: '5', countrycodes: 'us' });
+        if (viewbox) p.set('viewbox', viewbox);
+        const out = await getJson(`${NOMINATIM}/search?${p}`);
+        return (Array.isArray(out) ? out : []).map((r: any): Place => {
+          const parts = String(r.display_name ?? '').split(', ');
+          return { lat: Number(r.lat), lng: Number(r.lon), label: parts.slice(0, 2).join(', '), detail: parts.slice(2, 5).join(', ') || undefined, approximate };
+        });
+      };
+
+      const stripped = stripUnit(q);
+      const parsed = parseUsAddress(stripped);
+      let places: Place[] = [];
+
+      // 1. Exact US street addresses: the Census geocoder knows nearly every address range.
+      if (addressLookup && looksLikeStreetAddress(stripped)) {
+        places = await addressLookup(stripped).catch(() => []);
       }
-      const out = await getJson(`${NOMINATIM}/search?${p}`);
-      const places: Place[] = (Array.isArray(out) ? out : []).map((r: any) => {
-        const parts = String(r.display_name ?? '').split(', ');
-        const label = parts.slice(0, 2).join(', ');
-        return { lat: Number(r.lat), lng: Number(r.lon), label, detail: parts.slice(2, 5).join(', ') || undefined };
-      });
+      // 2. OpenStreetMap, as typed, then without suite/unit numbers.
+      if (!places.length) places = await search({ q });
+      if (!places.length && stripped !== q) places = await search({ q: stripped });
+      // 3. Structured search with the parts named.
+      if (!places.length && parsed?.street && (parsed.city || parsed.postcode)) {
+        const sp: Record<string, string> = { street: [parsed.houseNumber, parsed.street].filter(Boolean).join(' ') };
+        if (parsed.city) sp.city = parsed.city;
+        if (parsed.state) sp.state = parsed.state;
+        if (parsed.postcode) sp.postalcode = parsed.postcode;
+        places = await search(sp);
+      }
+      // 4. Fall back to the street, then the town: close enough to drag the pin into place.
+      if (!places.length && parsed?.houseNumber && parsed.street && parsed.city) {
+        places = await search({ q: [parsed.street, parsed.city, parsed.state].filter(Boolean).join(', ') }, 'street');
+      }
+      if (!places.length && parsed && (parsed.city || parsed.postcode)) {
+        places = await search({ q: [parsed.city, parsed.state, parsed.postcode].filter(Boolean).join(', ') }, 'town');
+      }
       remember(geoCache, key, places);
       return places;
     },

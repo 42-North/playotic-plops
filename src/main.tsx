@@ -19,7 +19,7 @@ if (config.configError) {
 } else {
   const api = config.mode === 'live' ? createLiveApi(config) : createDemoApi();
   const geo =
-    config.geoProvider === 'osm' ? createOsmGeo()
+    config.geoProvider === 'osm' ? createOsmGeo(undefined, undefined, api.lookupAddress)
     : config.geoProvider === 'geoapify' ? createGeoapify(config.geoapifyKey)
     : createDemoGeo();
   root.render(

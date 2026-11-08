@@ -146,7 +146,7 @@ export function PlaceSearch({ label, placeholder, value, onText, onPick, near, a
                 <li key={i}>
                   <button type="button" className="result-btn" onClick={() => { onPick(r); setResults(null); }}>
                     <Icon name="pin" size={18} />
-                    <span><strong>{r.label}</strong>{r.detail && <small>{r.detail}</small>}</span>
+                    <span><strong>{r.label}</strong>{r.detail && <small>{r.detail}</small>}{r.approximate && <small className="approx">Approximate: matched the {r.approximate}, not the exact address</small>}</span>
                   </button>
                 </li>
               ))}

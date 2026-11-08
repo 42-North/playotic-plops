@@ -4,6 +4,8 @@ export interface Place extends LatLng {
   label: string;
   /** Second line, e.g. city and state. */
   detail?: string;
+  /** Set when only the street or town matched, not the exact address. */
+  approximate?: 'street' | 'town';
 }
 
 export interface Route {

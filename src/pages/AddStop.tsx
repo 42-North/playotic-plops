@@ -23,7 +23,8 @@ export default function AddStop() {
 
   const [query, setQuery] = useState('');
   const [pos, setPos] = useState<LatLng | null>(null);
-  const [view, setView] = useState<{ key: string; points: LatLng[] } | null>(null);
+  const [view, setView] = useState<{ key: string; points: LatLng[]; zoom?: number } | null>(null);
+  const [approx, setApprox] = useState<'street' | 'town' | null>(null);
   const [name, setName] = useState('');
   const [category, setCategory] = useState<Category>('gas_station');
   const [address, setAddress] = useState('');
@@ -47,12 +48,13 @@ export default function AddStop() {
 
   function place(p: LatLng, label?: string) {
     setPos(p);
-    setView({ key: `${p.lat},${p.lng}`, points: [p] });
+    setView({ key: `${p.lat},${p.lng}`, points: [p], zoom: 17 });
     if (label && !address) setAddress(label);
   }
 
   async function onPinMoved(p: LatLng) {
     setPos(p);
+    setApprox(null);
     if (!address && geo.reverse) {
       const a = await geo.reverse(p).catch(() => null);
       if (a) setAddress((cur) => cur || a);
@@ -88,9 +90,14 @@ export default function AddStop() {
         <section className="add-col" aria-labelledby="where-h">
           <h2 id="where-h" className="step-h"><span className="step-n">1</span> Where is it?</h2>
           <PlaceSearch label="Search an address or place" placeholder="Address, exit, or town" value={query} onText={setQuery}
-            onPick={(p) => place(p, p.detail ? `${p.label}, ${p.detail}` : p.label)}
+            onPick={(p) => { setApprox(p.approximate ?? null); place(p, p.approximate ? undefined : p.detail ? `${p.label}, ${p.detail}` : p.label); }}
             actions={<button type="button" className="icon-btn" aria-label="Use my location" title="Use my location" onClick={async () => { const p = await geoLoc.locate(); if (p) place(p); }}><Icon name="locate" /></button>} />
           {geoLoc.error && <Notice tone="warn">{geoLoc.error}</Notice>}
+          {approx && (
+            <Notice tone="warn">
+              That exact address wasn’t found, so the pin is on the {approx === 'street' ? 'street' : 'town'}. Zoom in and tap the map (or drag the pin) to put it on the stop itself, and type the address below.
+            </Notice>
+          )}
           <p className="hint">Then tap the map, or drag the pin, to put it exactly on the building.</p>
           <div className="add-map">
             <Suspense fallback={<div className="map-shell"><Spinner label="Loading map" /></div>}>

@@ -417,3 +417,4 @@ legend { font-weight: 800; font-size: 1.02rem; padding: 0; margin-bottom: 6px; }
 }
 /* "Not sure" is a neutral default, not an answer: selected state is outlined, not filled */
 .seg-opt.unsure.on span { background: transparent; color: var(--text); border: 2px dashed var(--caramel); }
+.result-btn small.approx { color: var(--caramel-hi); font-weight: 700; }

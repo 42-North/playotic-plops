@@ -80,6 +80,10 @@ export function createLiveApi(cfg: Pick<AppConfig, 'supabaseUrl' | 'supabaseKey'
       await write({ action: 'vote', token: getOrCreateToken(), challenge, stop_id: stopId, vote });
       return { shared: true };
     },
+    async lookupAddress(address) {
+      const out = await write<{ places: { lat: number; lng: number; label: string; detail?: string }[] }>({ action: 'geocode', q: address });
+      return out.places ?? [];
+    },
     async report(stopId, ratingId, reason, details, challenge) {
       await write({ action: 'report', token: getOrCreateToken(), challenge, stop_id: stopId, rating_id: ratingId, reason, details });
       return { shared: true };

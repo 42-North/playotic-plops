@@ -2,7 +2,7 @@
 // RPC, challenge verification, secret) are injected so this file runs under Deno in
 // production and under Node/Vitest in tests.
 
-import { ValidationError, ratingFields, reportFields, stopFields, token as parseToken, uuid, voteValue } from './validate.ts';
+import { ValidationError, cleanText, ratingFields, reportFields, stopFields, token as parseToken, uuid, voteValue } from './validate.ts';
 
 export type Action = 'create_stop' | 'rate' | 'vote' | 'report' | 'me';
 
@@ -28,6 +28,43 @@ export interface Deps {
   challengeRequired: boolean;
   now?: () => Date;
   log?: (msg: string) => void;
+  /** Used for the US Census address lookup. Defaults to global fetch. */
+  fetchImpl?: typeof fetch;
+}
+
+/** Address lookups: no browser identity needed (browsing never creates one), limited per network. */
+export const GEOCODE_LIMIT: [number, number] = [300, 3_600];
+
+export interface GeocodedPlace { lat: number; lng: number; label: string; detail?: string }
+
+const titleCase = (s: string) =>
+  s.toLowerCase().replace(/\b([a-z])([a-z]*)/g, (_m, a: string, b: string) => a.toUpperCase() + b);
+
+/**
+ * US Census Bureau geocoder (free, no key). It does not allow browser (CORS) requests,
+ * so the backend asks on the visitor's behalf. The address is not stored.
+ */
+export async function censusLookup(address: string, fetchImpl: typeof fetch = fetch): Promise<GeocodedPlace[]> {
+  const p = new URLSearchParams({ address, benchmark: 'Public_AR_Current', format: 'json' });
+  const res = await fetchImpl(`https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?${p}`, {
+    headers: { Accept: 'application/json' },
+    signal: AbortSignal.timeout(8_000),
+  });
+  if (!res.ok) throw new Error(`census ${res.status}`);
+  const out = (await res.json()) as { result?: { addressMatches?: { matchedAddress?: string; coordinates?: { x?: number; y?: number } }[] } };
+  return (out.result?.addressMatches ?? [])
+    .filter((m) => Number.isFinite(m.coordinates?.x) && Number.isFinite(m.coordinates?.y))
+    .slice(0, 5)
+    .map((m) => {
+      const parts = String(m.matchedAddress ?? '').split(',').map((x) => x.trim());
+      const [street = '', city = '', state = '', zip = ''] = parts;
+      return {
+        lat: m.coordinates!.y!,
+        lng: m.coordinates!.x!,
+        label: titleCase(street),
+        detail: [titleCase(city), state.toUpperCase(), zip].filter(Boolean).join(', ') || undefined,
+      };
+    });
 }
 
 /** Per-action limits. Each write is checked against the browser identity AND the network bucket. */
@@ -120,10 +157,30 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
     return fail(400, 'bad_json', 'Request body must be a JSON object.', allowOrigin);
   }
 
+  const now = deps.now?.() ?? new Date();
+
+  if (body.action === 'geocode') {
+    try {
+      const q = cleanText(body.q, 'q', 200, true, 3)!;
+      const net = await networkBucket(deps.hashSecret, clientIp(req), now);
+      const ok = await deps.rpc('api_rate_limit', { p_bucket: net, p_action: 'geocode:net', p_max: GEOCODE_LIMIT[0], p_window_seconds: GEOCODE_LIMIT[1] });
+      if (!ok) return fail(429, 'rate_limited', 'Too many searches for now. Please try again later.', allowOrigin);
+      try {
+        return json(200, { ok: true, places: await censusLookup(q, deps.fetchImpl ?? fetch) }, allowOrigin);
+      } catch (e) {
+        deps.log?.(`census lookup failed: ${e instanceof Error ? e.message : String(e)}`);
+        return fail(502, 'geocoder_unavailable', 'The address lookup service is unavailable right now.', allowOrigin);
+      }
+    } catch (e) {
+      if (e instanceof ValidationError) return fail(400, 'invalid', e.message, allowOrigin, { field: e.field });
+      deps.log?.(`plops geocode error: ${e instanceof Error ? e.message : String(e)}`);
+      return fail(500, 'server_error', 'Something went wrong on our side. Please try again.', allowOrigin);
+    }
+  }
+
   const action = body.action as Action;
   if (!(action in RATE_LIMITS)) return fail(400, 'unknown_action', 'Unknown action.', allowOrigin);
 
-  const now = deps.now?.() ?? new Date();
   try {
     const browserToken = parseToken(body.token);
     // Validate everything before spending a challenge or a rate-limit slot.

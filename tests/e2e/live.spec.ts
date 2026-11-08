@@ -89,6 +89,21 @@ test('live route search shows calculated detours labelled as such', async ({ pag
   await page.screenshot({ path: `${shotDir}/live-route.png` });
 });
 
+test('exact street addresses (with a suite) resolve through the backend Census lookup', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'one live run is enough');
+  await stubs(page);
+  const calls: string[] = [];
+  page.on('request', (r) => { if (r.url().includes('/functions/v1/plops')) calls.push(r.postData() ?? ''); });
+  await page.goto(`${BASE}#/add`);
+  await page.getByPlaceholder('Address, exit, or town').fill('2550 Midway Rd Ste 100, Carrollton, TX 75006');
+  await page.getByPlaceholder('Address, exit, or town').press('Enter');
+  await expect(page.getByText(/Pin at 32\.98900, -96\.84200/)).toBeVisible();
+  await expect(page.getByLabel('Address or highway location')).toHaveValue('2550 Midway Rd, Carrollton, TX, 75006');
+  await expect(page.getByText(/exact address wasn’t found/)).toHaveCount(0);
+  expect(calls.some((c) => c.includes('"action":"geocode"') && c.includes('2550 Midway Rd, Carrollton'))).toBe(true);
+  expect(calls.every((c) => !c.includes('Ste 100'))).toBe(true);
+});
+
 test('live backend refuses direct writes and private reads', async ({ request }) => {
   const write = await request.post('http://localhost:54321/rest/v1/rpc/api_submit_rating', { data: {} });
   expect(write.status()).toBe(401);

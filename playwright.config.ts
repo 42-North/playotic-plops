@@ -21,7 +21,7 @@ export default defineConfig({
     ...(live
       ? [
           { command: 'node scripts/serve-subpath.mjs 4318 /playotic-plops/ dist-live', url: 'http://localhost:4318/playotic-plops/', reuseExistingServer: true },
-          { command: 'node scripts/local-backend.mjs 54321', port: 54321, reuseExistingServer: true, env: { PLOPS_DB_URL: process.env.PLOPS_DB_URL ?? '', ALLOWED_ORIGINS: 'http://localhost:4318' } },
+          { command: 'node scripts/local-backend.mjs 54321', port: 54321, reuseExistingServer: true, env: { PLOPS_DB_URL: process.env.PLOPS_DB_URL ?? '', ALLOWED_ORIGINS: 'http://localhost:4318', PLOPS_FAKE_CENSUS: '1' } },
         ]
       : []),
   ],

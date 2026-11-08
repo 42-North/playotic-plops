@@ -52,6 +52,10 @@ createServer(async (req, res) => {
       allowedOrigins: (process.env.ALLOWED_ORIGINS ?? 'http://localhost:4317,http://localhost:5173').split(','),
       challengeRequired: false,
       log: console.error,
+      // Tests can't reach the Census geocoder; PLOPS_FAKE_CENSUS returns a canned match instead.
+      fetchImpl: process.env.PLOPS_FAKE_CENSUS
+        ? async () => new Response(JSON.stringify({ result: { addressMatches: [{ matchedAddress: '2550 MIDWAY RD, CARROLLTON, TX, 75006', coordinates: { x: -96.8420, y: 32.9890 } }] } }))
+        : undefined,
     });
     res.writeHead(r.status, Object.fromEntries(r.headers));
     res.end(await r.text());

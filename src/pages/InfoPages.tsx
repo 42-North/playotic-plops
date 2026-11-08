@@ -61,7 +61,7 @@ export function About() {
       <p>{api.mode === 'demo'
         ? 'You are using demo mode. All stops are fictional and anything you add disappears when you reload.'
         : 'You are using the live, shared version. Ratings you submit are stored on the Playotic Plops server and shown to everyone.'}</p>
-      <p className="small muted">Map data © OpenStreetMap contributors. Map tiles by OpenFreeMap / OpenMapTiles. Address search by Nominatim and driving routes by the FOSSGIS OSRM server, both free community services built on OpenStreetMap.</p>
+      <p className="small muted">Map data © OpenStreetMap contributors. Map tiles by OpenFreeMap / OpenMapTiles. Address search by Nominatim and the US Census Bureau geocoder, and driving routes by the FOSSGIS OSRM server, both free community services built on OpenStreetMap.</p>
     </div>
   );
 }
@@ -88,14 +88,14 @@ export function Privacy() {
       </p>
 
       <h2>Location</h2>
-      <p>Your location is only requested if you tap “Use my location”. It is used in your browser to center the map and sort results. Precise start points, destinations and your current location are not stored in the Playotic Plops database or in your browser storage. Search text is sent to Nominatim, and route start/end points (plus any stop being checked for a detour) are sent to the FOSSGIS routing server, to answer the request. The routing server notes that route requests are saved in its log files.</p>
+      <p>Your location is only requested if you tap “Use my location”. It is used in your browser to center the map and sort results. Precise start points, destinations and your current location are not stored in the Playotic Plops database or in your browser storage. Search text is sent to Nominatim. Searches that look like a street address are also passed, through the Playotic Plops backend, to the US Census Bureau geocoder; the backend does not store them. and route start/end points (plus any stop being checked for a detour) are sent to the FOSSGIS routing server, to answer the request. The routing server notes that route requests are saved in its log files.</p>
       <p>Stops you add are saved with the map position of the stop itself, which is public.</p>
 
       <h2>Spam and abuse checks</h2>
       <p>Submissions use Cloudflare Turnstile, a spam check that runs only when you submit something. Cloudflare receives information about your browser and network to do this. For rate limiting, the server briefly stores a keyed hash of your network address, rotated daily and deleted within two days. Raw IP addresses are not stored in the application database.</p>
 
       <h2>Who else sees network information</h2>
-      <p>No account does not mean no data exists. Like any website, these services see your IP address and browser details when you use the site: GitHub Pages (hosting), Supabase (database and backend), OpenFreeMap (map tiles), Nominatim and FOSSGIS (search and routes) and Cloudflare (spam check, only when submitting). They may keep their own logs under their own policies.</p>
+      <p>No account does not mean no data exists. Like any website, these services see your IP address and browser details when you use the site: GitHub Pages (hosting), Supabase (database and backend), OpenFreeMap (map tiles), Nominatim, the US Census Bureau geocoder and FOSSGIS (search and routes) and Cloudflare (spam check, only when submitting). They may keep their own logs under their own policies.</p>
 
       <h2>What is public</h2>
       <p>Stop names, addresses, positions, ratings, details, comments, visit dates and submission times are public. Please don’t put names or personal details in comments. Reports and their text are private to the site owner.</p>
