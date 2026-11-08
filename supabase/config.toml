@@ -1,0 +1,7 @@
+# Supabase CLI configuration (only the settings Playotic Plops depends on).
+project_id = "playotic-plops"
+
+[functions.plops]
+# The browser calls this function with the publishable key, which is not a JWT.
+# The function authorizes writes itself (origin allow-list, Turnstile, keyed rate limits).
+verify_jwt = false

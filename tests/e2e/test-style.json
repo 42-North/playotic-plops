@@ -1,0 +1,15 @@
+{
+  "version": 8,
+  "name": "e2e-offline",
+  "sources": {
+    "land": { "type": "geojson", "data": { "type": "FeatureCollection", "features": [
+      { "type": "Feature", "properties": { "kind": "park" }, "geometry": { "type": "Polygon", "coordinates": [[[-97.4,31.4],[-97.2,31.42],[-97.25,31.6],[-97.42,31.55],[-97.4,31.4]]] } },
+      { "type": "Feature", "properties": { "kind": "water" }, "geometry": { "type": "Polygon", "coordinates": [[[-97.22,31.58],[-97.18,31.6],[-97.16,31.57],[-97.2,31.55],[-97.22,31.58]]] } }
+    ] } }
+  },
+  "layers": [
+    { "id": "background", "type": "background", "paint": { "background-color": "#ffffff" } },
+    { "id": "landcover-park", "type": "fill", "source": "land", "filter": ["==", ["get", "kind"], "park"], "paint": { "fill-color": "#00ff00" } },
+    { "id": "water", "type": "fill", "source": "land", "filter": ["==", ["get", "kind"], "water"], "paint": { "fill-color": "#0000ff" } }
+  ]
+}
