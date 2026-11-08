@@ -40,7 +40,11 @@ jobs:
         run: npm run test:db
         env:
           PLOPS_TEST_PG: postgres://postgres@localhost:5432/postgres
-      - run: deno check supabase/functions/plops/index.ts
+      - name: Single-file Edge Function is up to date and type-checks
+        run: |
+          node scripts/bundle-function.mjs
+          git diff --exit-code supabase/functions/plops-single-file/index.ts
+          deno check supabase/functions/plops/index.ts supabase/functions/plops-single-file/index.ts
       - name: Build demo bundle and run browser tests under a subpath
         run: |
           npx vite build

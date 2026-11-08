@@ -2,7 +2,7 @@
 // RPC, challenge verification, secret) are injected so this file runs under Deno in
 // production and under Node/Vitest in tests.
 
-import * as v from './validate.ts';
+import { ValidationError, ratingFields, reportFields, stopFields, token as parseToken, uuid, voteValue } from './validate.ts';
 
 export type Action = 'create_stop' | 'rate' | 'vote' | 'report' | 'me';
 
@@ -125,7 +125,7 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
 
   const now = deps.now?.() ?? new Date();
   try {
-    const browserToken = v.token(body.token);
+    const browserToken = parseToken(body.token);
     // Validate everything before spending a challenge or a rate-limit slot.
     const payload = parsePayload(action, body, now);
 
@@ -155,7 +155,7 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
     }
     return json(200, action === 'me' ? { ok: true, state: result } : result, allowOrigin);
   } catch (e) {
-    if (e instanceof v.ValidationError) return fail(400, 'invalid', e.message, allowOrigin, { field: e.field });
+    if (e instanceof ValidationError) return fail(400, 'invalid', e.message, allowOrigin, { field: e.field });
     if (e instanceof RpcError && ['22023', '23514', '22P02', '22007', '22008', '23502'].includes(e.code)) {
       return fail(400, 'invalid', 'Some of the submitted values were not accepted.', allowOrigin);
     }
@@ -169,15 +169,15 @@ type Payload = Record<string, unknown>;
 function parsePayload(action: Action, b: Record<string, unknown>, now: Date): Payload {
   switch (action) {
     case 'create_stop':
-      return { ...v.stopFields(b), ...v.ratingFields(b, now) };
+      return { ...stopFields(b), ...ratingFields(b, now) };
     case 'rate':
-      return { stop_id: v.uuid(b.stop_id, 'stop_id'), ...v.ratingFields(b, now) };
+      return { stop_id: uuid(b.stop_id, 'stop_id'), ...ratingFields(b, now) };
     case 'vote':
-      return { stop_id: v.uuid(b.stop_id, 'stop_id'), vote: v.voteValue(b.vote) };
+      return { stop_id: uuid(b.stop_id, 'stop_id'), vote: voteValue(b.vote) };
     case 'report':
-      return v.reportFields(b);
+      return reportFields(b);
     case 'me':
-      return { stop_id: v.uuid(b.stop_id, 'stop_id') };
+      return { stop_id: uuid(b.stop_id, 'stop_id') };
   }
 }
 

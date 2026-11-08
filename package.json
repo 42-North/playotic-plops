@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:db": "vitest run --config vitest.db.config.ts",
     "test:e2e": "playwright test",
-    "check:functions": "deno check supabase/functions/plops/index.ts",
+    "check:functions": "deno check supabase/functions/plops/index.ts supabase/functions/plops-single-file/index.ts",
+    "bundle:function": "node scripts/bundle-function.mjs",
     "local-backend": "node scripts/local-backend.mjs"
   },
   "dependencies": {
