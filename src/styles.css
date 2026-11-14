@@ -418,3 +418,12 @@ legend { font-weight: 800; font-size: 1.02rem; padding: 0; margin-bottom: 6px; }
 /* "Not sure" is a neutral default, not an answer: selected state is outlined, not filled */
 .seg-opt.unsure.on span { background: transparent; color: var(--text); border: 2px dashed var(--caramel); }
 .result-btn small.approx { color: var(--caramel-hi); font-weight: 700; }
+
+/* food & store bonus */
+.sc-bonus { display: flex; align-items: center; gap: 6px; font-size: .84rem; color: var(--text-2); margin: 6px 0 0; }
+.bonus-panel { margin-top: 12px; padding: 12px 14px; border-radius: var(--radius); border: 1.5px dashed var(--border); background: transparent; }
+.bonus-panel .panel-label { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+.bonus-score { margin: 2px 0; font-family: var(--head); font-size: 1.15rem; }
+.bonus-box { border: 1.5px dashed var(--border); border-radius: var(--radius); padding: 12px 14px 4px; margin: 18px 0; }
+.bonus-box > legend { padding: 0 6px; margin-left: -6px; }
+.bonus-box .seg { margin: 10px 0; }

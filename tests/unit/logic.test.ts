@@ -14,7 +14,7 @@ import { applyFilters } from '../../src/services';
 
 const today = new Date().toISOString().slice(0, 10);
 const rating = (n: number, extra: Partial<RatingInput> = {}): RatingInput => ({
-  rating: n, cleanliness: 'unknown', stall_privacy: 'unknown', key_required: 'unknown', food: 'unknown', restroom: 'unspecified', comment: '', visit_date: today, ...extra,
+  rating: n, cleanliness: 'unknown', stall_privacy: 'unknown', key_required: 'unknown', food: 'unknown', restroom: 'unspecified', comment: '', visit_date: today, store_rating: 0, ...extra,
 });
 
 describe('configuration', () => {
@@ -145,9 +145,9 @@ describe('demo backend mirrors the rating model', () => {
   it('filters use the latest reported criteria', async () => {
     const api = createDemoApi();
     const all = await api.stopsInBox({ south: 29, north: 33, west: -99, east: -96 });
-    const keyless = all.filter((s) => applyFilters(s, { crowd4: false, fullDoors: false, noKey: true, food: false }));
+    const keyless = all.filter((s) => applyFilters(s, { crowd4: false, noGaps: false, noKey: true, food: false }));
     expect(keyless.map((s) => s.name)).not.toContain('Pecan Grove Gas & Go');
-    const top = all.filter((s) => applyFilters(s, { crowd4: true, fullDoors: true, noKey: false, food: false }));
+    const top = all.filter((s) => applyFilters(s, { crowd4: true, noGaps: true, noKey: false, food: false }));
     expect(top.every((s) => (s.crowd_avg ?? 0) >= 4 && s.crowd_count > 0)).toBe(true);
     expect(top.map((s) => s.name)).not.toContain('Red Oak Rest Stop'); // no crowd ratings → not "4+"
   });

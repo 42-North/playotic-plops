@@ -34,7 +34,7 @@ export default function RateStop() {
         else if (me.rating?.status === 'hidden') setBlocked('Your earlier rating for this stop was removed by moderation.');
         else if (me.rating) {
           setEditing(true);
-          setValue({ ...me.rating, comment: me.rating.comment ?? '' });
+          setValue({ ...me.rating, comment: me.rating.comment ?? '', store_rating: me.rating.store_rating ?? 0 });
         }
       } catch (e) {
         if (live) setErr(e instanceof Error ? e.message : 'Could not load this stop.');

@@ -96,8 +96,37 @@ describe('plops edge function', () => {
     }
   });
 
-  it('returns 429 when either rate-limit bucket is exhausted', async () => {
-    const { d } = deps({ rpc: vi.fn(async (fn: string) => (fn === 'api_rate_limit' ? false : { ok: true })) });
+  it('does not rate limit by default', async () => {
+    const { d, calls } = deps();
+    expect((await handle(post(rateBody), d)).status).toBe(200);
+    expect(calls.map((c) => c.fn)).toEqual(['api_submit_rating']);
+  });
+
+  it('passes the optional food & store bonus rating, and validates it', async () => {
+    const { d, calls } = deps();
+    await handle(post({ ...rateBody, store_rating: 4 }), d);
+    expect(calls.at(-1)!.args.p_store_rating).toBe(4);
+    await handle(post({ ...rateBody, store_rating: null }), d);
+    expect(calls.at(-1)!.args.p_store_rating).toBeNull();
+    await handle(post({ ...rateBody, store_rating: 0 }), d);
+    expect(calls.at(-1)!.args.p_store_rating).toBeNull();
+    for (const bad of [6, 2.5, '4']) {
+      const { d: d2 } = deps();
+      expect((await handle(post({ ...rateBody, store_rating: bad }), d2)).status).toBe(400);
+    }
+  });
+
+  it('accepts the new door options and rejects the retired one', async () => {
+    for (const p of ['gaps', 'no_gaps', 'full_height', 'single_user', 'unknown']) {
+      const { d } = deps();
+      expect((await handle(post({ ...rateBody, stall_privacy: p }), d)).status).toBe(200);
+    }
+    const { d } = deps();
+    expect((await handle(post({ ...rateBody, stall_privacy: 'full_doors' }), d)).status).toBe(400);
+  });
+
+  it('returns 429 when rate limits are turned on and a bucket is exhausted', async () => {
+    const { d } = deps({ rateLimits: true, rpc: vi.fn(async (fn: string) => (fn === 'api_rate_limit' ? false : { ok: true })) });
     const res = await handle(post(rateBody), d);
     expect(res.status).toBe(429);
   });

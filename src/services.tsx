@@ -6,6 +6,7 @@ import type { LatLng, BBox } from './lib/geo';
 import type { RouteStop } from './lib/routeStops';
 import type { Place, Route } from './geo/provider';
 import type { StopSummary } from './api/types';
+import { NO_GAP_PRIVACY } from './lib/rating';
 
 export interface Services {
   config: AppConfig;
@@ -28,7 +29,7 @@ export function useServices(): Services {
 /** Explore state lives in memory only, so returning from a stop restores the view. Never persisted. */
 export interface Filters {
   crowd4: boolean;
-  fullDoors: boolean;
+  noGaps: boolean;
   noKey: boolean;
   food: boolean;
 }
@@ -66,7 +67,7 @@ export interface ExploreState {
 const initialExplore: ExploreState = {
   mode: 'nearby',
   display: 'list',
-  filters: { crowd4: false, fullDoors: false, noKey: false, food: false },
+  filters: { crowd4: false, noGaps: false, noKey: false, food: false },
   nearby: { origin: null, area: null, results: null, view: null, query: '', loading: false, error: null },
   route: { from: null, to: null, fromText: '', toText: '', corridorMi: 2, route: null, stops: null, under10: false },
 };
@@ -87,7 +88,7 @@ export function useExplore() {
 
 export function applyFilters(s: StopSummary, f: Filters): boolean {
   if (f.crowd4 && !(s.crowd_count > 0 && (s.crowd_avg ?? 0) >= 4)) return false;
-  if (f.fullDoors && !(s.stall_privacy === 'full_doors' || s.stall_privacy === 'single_user')) return false;
+  if (f.noGaps && !(s.stall_privacy && NO_GAP_PRIVACY.has(s.stall_privacy))) return false;
   if (f.noKey && s.key_required !== 'no') return false;
   if (f.food && !(s.food === 'snacks' || s.food === 'hot_food')) return false;
   return true;

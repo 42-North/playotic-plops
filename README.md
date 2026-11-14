@@ -60,9 +60,9 @@ PLOPS_E2E_LIVE=1 PLOPS_DB_URL='postgres://postgres@localhost/plops_e2e' npx play
    ```bash
    npx supabase login
    npx supabase link --project-ref YOUR_PROJECT_REF
-   npx supabase db push        # applies supabase/migrations/20261108000001_playotic_plops.sql
+   npx supabase db push        # applies every file in supabase/migrations, in order
    ```
-   (Alternative: paste the migration file into the Dashboard SQL Editor and run it.)
+   (Alternative: paste each migration file into the Dashboard SQL Editor and run them in filename order. Each runs once; `20261114000001_doors_and_store_rating.sql` is also safe to re-run.)
 3. In **Project Settings → API Keys**, copy the **publishable** key (`sb_publishable_…`) for the frontend. Do **not** use the secret key anywhere outside Supabase; the Edge Function receives it automatically.
 
 What the migration creates:
@@ -80,7 +80,7 @@ Uniqueness is enforced by the database: one original rating per stop, one crowd 
 
 ## Edge Function (`plops`)
 
-All writes go through `supabase/functions/plops`. It validates input, checks the browser origin, verifies Turnstile server-side, applies rate limits per browser identity and per network bucket, then calls the service-only SQL functions.
+All writes go through `supabase/functions/plops`. It validates input, checks the browser origin, verifies Turnstile server-side, optionally applies rate limits, then calls the service-only SQL functions.
 
 ```bash
 cp supabase/functions/.env.example supabase/functions/.env   # fill in, never commit
@@ -93,7 +93,7 @@ npx supabase functions deploy plops --no-verify-jwt
 
 `verify_jwt = false` is also set in `supabase/config.toml`: the browser sends the publishable key, which is not a JWT, and the function authorizes requests itself. If any required secret is missing the function returns `503 not_configured` instead of accepting writes.
 
-Rate limits (in `core.ts`, `RATE_LIMITS`): new stops 5/day per identity and 15/day per network; ratings 30/hour and 60/hour; votes 60/hour and 150/hour; reports 10/day and 30/day.
+Rate limits are **off by default**. To turn them on, add the Edge Function secret `RATE_LIMITS` = `on` (no redeploy needed). The limits (in `core.ts`, `RATE_LIMITS`) are: new stops 5/day per browser and 15/day per network; ratings 30/hour and 60/hour; votes 60/hour and 150/hour; reports 10/day and 30/day; address lookups 300/hour per network. With limits off, the database still enforces one rating and one agreement vote per browser per stop, and Turnstile still runs on every submission.
 
 ---
 
@@ -155,7 +155,9 @@ You can also edit `status` columns in **Table Editor** (schema `private`). Aggre
 - **Agreement** — agree/disagree votes about the original rating only. They never change the crowd score.
 - **Crowd rating** — mean of later independent ratings (original excluded), one decimal, always with its count. "No crowd ratings yet" when there are none; an "Early read" label under 5 ratings.
 
-Criteria (cleanliness, stall privacy, key, food) keep "unknown" separate from "no" and show the latest visit that reported them, with its visit date and all-report tallies. Food never affects the score. Visit dates are separate from submission times.
+Criteria (cleanliness, stall privacy, key, food) keep "unknown" separate from "no" and show the latest visit that reported them, with its visit date and all-report tallies. Stall privacy options: standard stall with gaps, nearly full door with no gaps, floor-to-ceiling stall (Buc-ee's style), private single-user room. Visit dates are separate from submission times.
+
+- **Food & store bonus** — optional 1–5 on any rating, original or crowd. Shown on its own panel as an average with a count. It never feeds the original, agreement or crowd plop numbers.
 
 ## Privacy and abuse prevention
 

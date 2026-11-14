@@ -58,7 +58,7 @@ export function createDemoApi(now = () => new Date()): Api {
       const v = db.votes.find((x) => x.stop_id === stopId && x.who === DEMO_ME);
       return delay({
         is_creator: s?.creator === DEMO_ME,
-        rating: r ? { id: r.id, rating: r.rating, cleanliness: r.cleanliness, stall_privacy: r.stall_privacy, key_required: r.key_required, food: r.food, restroom: r.restroom, comment: r.comment, visit_date: r.visit_date, status: r.status } : null,
+        rating: r ? { id: r.id, rating: r.rating, cleanliness: r.cleanliness, stall_privacy: r.stall_privacy, key_required: r.key_required, food: r.food, store_rating: r.store_rating, restroom: r.restroom, comment: r.comment, visit_date: r.visit_date, status: r.status } : null,
         vote: v ? (v.agrees ? 'agree' : 'disagree') : null,
       });
     },
@@ -101,6 +101,7 @@ export function createDemoApi(now = () => new Date()): Api {
     return {
       id: nextId(), stop_id: stopId, who: DEMO_ME, is_original: isOriginal, rating: input.rating,
       cleanliness: input.cleanliness, stall_privacy: input.stall_privacy, key_required: input.key_required, food: input.food,
+      store_rating: input.store_rating || null,
       restroom: input.restroom, comment: comment || null, visit_date: input.visit_date, created_at: t, updated_at: t, status: 'visible',
     };
   }

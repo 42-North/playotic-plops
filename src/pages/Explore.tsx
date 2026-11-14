@@ -177,7 +177,7 @@ function FilterChips() {
   return (
     <div className="filters" role="group" aria-label="Filters">
       <button type="button" className="chip" aria-pressed={f.crowd4} onClick={() => toggle('crowd4')}>4+ crowd score</button>
-      <button type="button" className="chip" aria-pressed={f.fullDoors} onClick={() => toggle('fullDoors')} title="Latest visit reported full doors or a single-user room">Full doors</button>
+      <button type="button" className="chip" aria-pressed={f.noGaps} onClick={() => toggle('noGaps')} title="Latest visit reported a door with no gaps, a floor-to-ceiling stall or a private room">No gaps</button>
       <button type="button" className="chip" aria-pressed={f.noKey} onClick={() => toggle('noKey')}>No key</button>
       <button type="button" className="chip" aria-pressed={f.food} onClick={() => toggle('food')}>Food</button>
       {routeMode && (

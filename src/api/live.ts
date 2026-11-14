@@ -40,7 +40,12 @@ export function createLiveApi(cfg: Pick<AppConfig, 'supabaseUrl' | 'supabaseKey'
     return out as T;
   }
 
-  const num = (s: StopSummary): StopSummary => ({ ...s, crowd_avg: s.crowd_avg == null ? null : Number(s.crowd_avg) });
+  const num = (s: StopSummary): StopSummary => ({
+    ...s,
+    crowd_avg: s.crowd_avg == null ? null : Number(s.crowd_avg),
+    store_count: Number(s.store_count ?? 0),
+    store_avg: s.store_avg == null ? null : Number(s.store_avg),
+  });
 
   return {
     mode: 'live',
@@ -60,7 +65,7 @@ export function createLiveApi(cfg: Pick<AppConfig, 'supabaseUrl' | 'supabaseKey'
     },
     async stopDetail(id) {
       const d = await rpc<StopDetail | null>('stop_detail', { p_stop_id: id });
-      return d ? ({ ...num(d), ...d, crowd_avg: d.crowd_avg == null ? null : Number(d.crowd_avg) } as StopDetail) : null;
+      return d ? ({ ...d, ...num(d) } as StopDetail) : null;
     },
     async myState(stopId) {
       const token = peekToken(); // never create an identity just to look
@@ -69,11 +74,11 @@ export function createLiveApi(cfg: Pick<AppConfig, 'supabaseUrl' | 'supabaseKey'
       return out.state;
     },
     async createStop(input, challenge) {
-      const out = await write<{ stop_id: string }>({ action: 'create_stop', token: getOrCreateToken(), challenge, ...input });
+      const out = await write<{ stop_id: string }>({ action: 'create_stop', token: getOrCreateToken(), challenge, ...input, store_rating: input.store_rating || null });
       return { shared: true, stopId: out.stop_id };
     },
     async submitRating(stopId, input, challenge) {
-      const out = await write<{ updated: boolean }>({ action: 'rate', token: getOrCreateToken(), challenge, stop_id: stopId, ...input });
+      const out = await write<{ updated: boolean }>({ action: 'rate', token: getOrCreateToken(), challenge, stop_id: stopId, ...input, store_rating: input.store_rating || null });
       return { shared: true, updated: out.updated };
     },
     async setAgreement(stopId, vote, challenge) {

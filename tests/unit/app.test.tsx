@@ -73,7 +73,7 @@ describe('app (demo mode)', () => {
   it('submits a rating, renders comments as plain text, and offers editing', async () => {
     renderApp('/stop/d0000000-0000-4000-8000-000000000006/rate');
     const user = userEvent.setup();
-    await screen.findByText(/Rate/);
+    await screen.findByRole('heading', { name: 'Give a plop.' });
     await user.click(screen.getByRole('button', { name: /Submit rating/ }));
     expect(screen.getByRole('alert')).toHaveTextContent(/Choose an overall rating/);
     await user.click(screen.getByRole('radio', { name: /^3 plops/ }));
@@ -99,5 +99,25 @@ describe('app (demo mode)', () => {
     expect(screen.queryByText(/Adds \d+ min/)).not.toBeInTheDocument();
     expect(screen.queryByText('Bosque Bend Gas')).not.toBeInTheDocument(); // ~13 km off the route
     expect(screen.getByRole('button', { name: 'Under 10 min extra' })).toBeDisabled();
+  });
+
+  it('food & store bonus rating is optional, shown separately, and leaves plop scores alone', async () => {
+    renderApp('/stop/d0000000-0000-4000-8000-000000000006/rate');
+    const user = userEvent.setup();
+    await screen.findByRole('heading', { name: 'Give a plop.' });
+    // New door options are offered
+    for (const label of ['Standard stall (gaps)', 'Nearly full door, no gaps', 'Floor-to-ceiling stall', 'Private room']) {
+      expect(screen.getByRole('radio', { name: label, exact: true })).toBeInTheDocument();
+    }
+    await user.click(screen.getByRole('radio', { name: /^4 plops/ }));
+    await user.click(screen.getByRole('radio', { name: 'Floor-to-ceiling stall', exact: true }));
+    const bonus = within(screen.getByRole('group', { name: /Rate the food & store/ }));
+    await user.click(bonus.getByRole('radio', { name: '2' }));
+    await user.click(screen.getByRole('button', { name: /Submit 4 plops/ }));
+    await screen.findByRole('heading', { name: 'Red Oak Rest Stop' });
+    expect(await screen.findByText('2.0 / 5')).toBeInTheDocument();          // bonus panel
+    expect(screen.getByText(/^1 crowd rating/)).toBeInTheDocument();
+    expect(document.querySelector('.crowd-big .num')).toHaveTextContent('4.0'); // plops unaffected by the 2
+    expect(screen.getAllByText(/Floor-to-ceiling stall/).length).toBeGreaterThan(0);
   });
 });

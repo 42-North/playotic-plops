@@ -29,6 +29,9 @@ export interface StopSummary {
   key_required_visit_date: string | null;
   food: Food | null;
   food_visit_date: string | null;
+  /** Food & store bonus rating: count and mean (one decimal) of every visible rating that included one. Never part of a plop score. */
+  store_count: number;
+  store_avg: number | null;
 }
 
 export interface PublicRating {
@@ -39,6 +42,7 @@ export interface PublicRating {
   stall_privacy: StallPrivacy;
   key_required: KeyRequired;
   food: Food;
+  store_rating: number | null;
   restroom: Restroom;
   comment: string | null;
   visit_date: string;
@@ -62,6 +66,8 @@ export interface RatingInput {
   stall_privacy: StallPrivacy;
   key_required: KeyRequired;
   food: Food;
+  /** Optional bonus rating for the food and store, 1-5. 0 = not given. */
+  store_rating: number;
   restroom: Restroom;
   comment: string;
   visit_date: string;
@@ -89,7 +95,7 @@ export interface NearbyStop {
 
 export interface MyState {
   is_creator: boolean;
-  rating: (Omit<RatingInput, 'comment'> & { id: string; comment: string | null; status: string }) | null;
+  rating: (Omit<RatingInput, 'comment' | 'store_rating'> & { id: string; comment: string | null; store_rating: number | null; status: string }) | null;
   vote: 'agree' | 'disagree' | 'removed' | null;
 }
 

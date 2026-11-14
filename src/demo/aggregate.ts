@@ -47,6 +47,8 @@ export function summarize(stop: RecStop, allRatings: RecRating[], allVotes: RecV
   const crowd = rs.filter((r) => !r.is_original);
   const votes = original ? allVotes.filter((v) => v.stop_id === stop.id && v.status === 'visible') : [];
   const sum = crowd.reduce((a, r) => a + r.rating, 0);
+  // Bonus rating: every visible rating that included one, original or crowd. Never mixed into plop scores.
+  const stores = rs.filter((r) => r.store_rating != null);
   const c = latest(rs, 'cleanliness'), p = latest(rs, 'stall_privacy'), k = latest(rs, 'key_required'), f = latest(rs, 'food');
   return {
     id: stop.id, name: stop.name, category: stop.category, address: stop.address, lat: stop.lat, lng: stop.lng,
@@ -64,6 +66,8 @@ export function summarize(stop: RecStop, allRatings: RecRating[], allVotes: RecV
     stall_privacy: p.value, stall_privacy_visit_date: p.date,
     key_required: k.value, key_required_visit_date: k.date,
     food: f.value, food_visit_date: f.date,
+    store_count: stores.length,
+    store_avg: stores.length ? roundOne(stores.reduce((x, r) => x + (r.store_rating ?? 0), 0), stores.length) : null,
   } as StopSummary;
 }
 

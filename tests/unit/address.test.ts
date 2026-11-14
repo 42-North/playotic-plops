@@ -44,9 +44,9 @@ describe('US Census lookup (backend)', () => {
     expect(url.searchParams.get('format')).toBe('json');
   });
 
-  it('is a plops action that needs no browser identity or challenge, but is rate limited', async () => {
+  it('is a plops action that needs no browser identity or challenge, and can be rate limited', async () => {
     const rpc = vi.fn(async () => true);
-    const deps: Deps = { rpc, verifyChallenge: vi.fn(), hashSecret: 'x'.repeat(40), allowedOrigins: ['https://me.github.io'], challengeRequired: true,
+    const deps: Deps = { rpc, verifyChallenge: vi.fn(), hashSecret: 'x'.repeat(40), allowedOrigins: ['https://me.github.io'], challengeRequired: true, rateLimits: true,
       fetchImpl: (async () => new Response(JSON.stringify(censusJson))) as typeof fetch };
     const req = (body: unknown) => new Request('https://f/plops', { method: 'POST', headers: { origin: 'https://me.github.io' }, body: JSON.stringify(body) });
     const res = await handle(req({ action: 'geocode', q: DENTON }), deps);

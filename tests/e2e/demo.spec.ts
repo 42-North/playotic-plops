@@ -80,13 +80,15 @@ test('adding a stop in demo mode is clearly not shared', async ({ page }, info) 
   await page.getByLabel('Name').fill('Demo Test Fuel');
   await page.getByLabel('Address or highway location').fill('1 Demo Way');
   await page.getByRole('radio', { name: /^5 plops/ }).check({ force: true });
-  await page.locator('label.seg-opt', { hasText: /^Full doors$/ }).click();
-  await expect(page.getByRole('radio', { name: 'Full doors' })).toBeChecked();
+  await page.locator('label.seg-opt', { hasText: /^Floor-to-ceiling stall$/ }).click();
+  await expect(page.getByRole('radio', { name: 'Floor-to-ceiling stall', exact: true })).toBeChecked();
+  await page.getByRole('group', { name: /Rate the food & store/ }).locator('label.seg-opt', { hasText: /^4$/ }).click();
   await page.screenshot({ path: `${shotDir}/${info.project.name}-add.png`, fullPage: true });
   await page.getByRole('button', { name: 'Add stop' }).click();
   await expect(page.getByRole('heading', { name: 'Demo Test Fuel' })).toBeVisible();
   await expect(page.getByText(/Demo only: this stop exists in this tab only/)).toBeVisible();
   await expect(page.getByText('No crowd ratings yet')).toBeVisible();
+  await expect(page.getByText('4.0 / 5')).toBeVisible(); // food & store bonus, separate panel
   await expect(page.getByText('You added this stop and its original rating.')).toBeVisible();
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Stop not found' })).toBeVisible();

@@ -7,7 +7,7 @@
 
 export const CATEGORIES = ['gas_station', 'travel_center', 'rest_area'] as const;
 export const CLEANLINESS = ['dirty', 'okay', 'very_clean', 'unknown'] as const;
-export const STALL_PRIVACY = ['gaps', 'full_doors', 'single_user', 'unknown'] as const;
+export const STALL_PRIVACY = ['gaps', 'no_gaps', 'full_height', 'single_user', 'unknown'] as const;
 export const KEY_REQUIRED = ['yes', 'no', 'unknown'] as const;
 export const FOOD = ['none', 'snacks', 'hot_food', 'unknown'] as const;
 export const RESTROOM = ['mens', 'womens', 'all_gender', 'unspecified'] as const;
@@ -88,8 +88,18 @@ export function plopRating(v: unknown): number {
   return v;
 }
 
+/** Optional food & store bonus rating: whole number 1-5, or null when not given. */
+export function storeRating(v: unknown): number | null {
+  if (v === undefined || v === null || v === 0) return null;
+  if (typeof v !== 'number' || !Number.isInteger(v) || v < 1 || v > 5) {
+    throw new ValidationError('store_rating', 'Food & store rating must be a whole number from 1 to 5, or left blank.');
+  }
+  return v;
+}
+
 export interface RatingFields {
   rating: number;
+  store_rating: number | null;
   cleanliness: string;
   stall_privacy: string;
   key_required: string;
@@ -102,6 +112,7 @@ export interface RatingFields {
 export function ratingFields(b: Obj, now?: Date): RatingFields {
   return {
     rating: plopRating(b.rating),
+    store_rating: storeRating(b.store_rating),
     cleanliness: oneOf(b.cleanliness, CLEANLINESS, 'cleanliness', 'unknown'),
     stall_privacy: oneOf(b.stall_privacy, STALL_PRIVACY, 'stall_privacy', 'unknown'),
     key_required: oneOf(b.key_required, KEY_REQUIRED, 'key_required', 'unknown'),
@@ -167,6 +178,8 @@ export interface Deps {
   allowedOrigins: string[];
   /** When false (local development only), challenge verification is skipped. */
   challengeRequired: boolean;
+  /** Per-browser and per-network submission limits. Off unless the RATE_LIMITS=on secret is set. */
+  rateLimits?: boolean;
   now?: () => Date;
   log?: (msg: string) => void;
   /** Used for the US Census address lookup. Defaults to global fetch. */
@@ -303,9 +316,11 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
   if (body.action === 'geocode') {
     try {
       const q = cleanText(body.q, 'q', 200, true, 3)!;
-      const net = await networkBucket(deps.hashSecret, clientIp(req), now);
-      const ok = await deps.rpc('api_rate_limit', { p_bucket: net, p_action: 'geocode:net', p_max: GEOCODE_LIMIT[0], p_window_seconds: GEOCODE_LIMIT[1] });
-      if (!ok) return fail(429, 'rate_limited', 'Too many searches for now. Please try again later.', allowOrigin);
+      if (deps.rateLimits) {
+        const net = await networkBucket(deps.hashSecret, clientIp(req), now);
+        const ok = await deps.rpc('api_rate_limit', { p_bucket: net, p_action: 'geocode:net', p_max: GEOCODE_LIMIT[0], p_window_seconds: GEOCODE_LIMIT[1] });
+        if (!ok) return fail(429, 'rate_limited', 'Too many searches for now. Please try again later.', allowOrigin);
+      }
       try {
         return json(200, { ok: true, places: await censusLookup(q, deps.fetchImpl ?? fetch) }, allowOrigin);
       } catch (e) {
@@ -324,7 +339,7 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
 
   try {
     const browserToken = token(body.token);
-    // Validate everything before spending a challenge or a rate-limit slot.
+    // Validate everything before spending a challenge (or a rate-limit slot, when limits are on).
     const payload = parsePayload(action, body, now);
 
     if (CHALLENGED.has(action) && deps.challengeRequired) {
@@ -338,12 +353,14 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
     }
 
     const who = await identityHash(deps.hashSecret, browserToken);
-    const net = await networkBucket(deps.hashSecret, clientIp(req), now);
-    const lim = RATE_LIMITS[action];
-    const okNet = await deps.rpc('api_rate_limit', { p_bucket: net, p_action: `${action}:net`, p_max: lim.network[0], p_window_seconds: lim.network[1] });
-    const okId = okNet && (await deps.rpc('api_rate_limit', { p_bucket: who, p_action: `${action}:id`, p_max: lim.identity[0], p_window_seconds: lim.identity[1] }));
-    if (!okNet || !okId) {
-      return fail(429, 'rate_limited', 'Too many submissions for now. Please try again later.', allowOrigin);
+    if (deps.rateLimits) {
+      const net = await networkBucket(deps.hashSecret, clientIp(req), now);
+      const lim = RATE_LIMITS[action];
+      const okNet = await deps.rpc('api_rate_limit', { p_bucket: net, p_action: `${action}:net`, p_max: lim.network[0], p_window_seconds: lim.network[1] });
+      const okId = okNet && (await deps.rpc('api_rate_limit', { p_bucket: who, p_action: `${action}:id`, p_max: lim.identity[0], p_window_seconds: lim.identity[1] }));
+      if (!okNet || !okId) {
+        return fail(429, 'rate_limited', 'Too many submissions for now. Please try again later.', allowOrigin);
+      }
     }
 
     const result = (await dispatch(action, who, payload, deps)) as { ok?: boolean; code?: string; message?: string };
@@ -388,14 +405,14 @@ function dispatch(action: Action, who: string, p: Payload, deps: Deps) {
         p_confirm_distinct: p.confirm_distinct,
         p_rating: p.rating, p_cleanliness: p.cleanliness, p_stall_privacy: p.stall_privacy,
         p_key_required: p.key_required, p_food: p.food, p_restroom: p.restroom,
-        p_comment: p.comment, p_visit_date: p.visit_date,
+        p_comment: p.comment, p_visit_date: p.visit_date, p_store_rating: p.store_rating,
       });
     case 'rate':
       return deps.rpc('api_submit_rating', {
         p_contributor: who, p_stop_id: p.stop_id,
         p_rating: p.rating, p_cleanliness: p.cleanliness, p_stall_privacy: p.stall_privacy,
         p_key_required: p.key_required, p_food: p.food, p_restroom: p.restroom,
-        p_comment: p.comment, p_visit_date: p.visit_date,
+        p_comment: p.comment, p_visit_date: p.visit_date, p_store_rating: p.store_rating,
       });
     case 'vote':
       return deps.rpc('api_set_agreement', { p_voter: who, p_stop_id: p.stop_id, p_vote: p.vote });
@@ -461,6 +478,7 @@ export function postgrestRpc(supabaseUrl: string, serviceKey: string, fetchImpl:
 // Optional:
 //   TURNSTILE_HOSTNAMES    comma-separated hostnames the challenge must have been solved on
 //   CHALLENGE_MODE=off     local development only; disables challenge verification
+//   RATE_LIMITS=on         turns on per-browser/per-network submission limits (off by default)
 // Provided by Supabase automatically: SUPABASE_URL, SUPABASE_SECRET_KEYS (or legacy SUPABASE_SERVICE_ROLE_KEY)
 
 
@@ -509,6 +527,7 @@ Deno.serve((req) => {
     hashSecret,
     allowedOrigins: list('ALLOWED_ORIGINS'),
     challengeRequired: !challengeOff,
+    rateLimits: env('RATE_LIMITS').toLowerCase() === 'on',
     log: (m) => console.error(m),
   });
 });

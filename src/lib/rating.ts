@@ -1,6 +1,6 @@
 export type Category = 'gas_station' | 'travel_center' | 'rest_area';
 export type Cleanliness = 'dirty' | 'okay' | 'very_clean' | 'unknown';
-export type StallPrivacy = 'gaps' | 'full_doors' | 'single_user' | 'unknown';
+export type StallPrivacy = 'gaps' | 'no_gaps' | 'full_height' | 'single_user' | 'unknown';
 export type KeyRequired = 'yes' | 'no' | 'unknown';
 export type Food = 'none' | 'snacks' | 'hot_food' | 'unknown';
 export type Restroom = 'mens' | 'womens' | 'all_gender' | 'unspecified';
@@ -13,7 +13,17 @@ export const CATEGORY_LABEL: Record<Category, string> = {
 };
 
 export const CLEANLINESS_LABEL: Record<Cleanliness, string> = { dirty: 'Dirty', okay: 'Okay', very_clean: 'Very clean', unknown: 'Not sure' };
-export const PRIVACY_LABEL: Record<StallPrivacy, string> = { gaps: 'Gaps', full_doors: 'Full doors', single_user: 'Single-user room', unknown: 'Not sure' };
+export const PRIVACY_LABEL: Record<StallPrivacy, string> = {
+  gaps: 'Standard stall (gaps)',
+  no_gaps: 'Nearly full door, no gaps',
+  full_height: 'Floor-to-ceiling stall',
+  single_user: 'Private room',
+  unknown: 'Not sure',
+};
+/** Order used in the form: least to most private, then "Not sure". */
+export const PRIVACY_ORDER: StallPrivacy[] = ['gaps', 'no_gaps', 'full_height', 'single_user', 'unknown'];
+/** Stalls a traveler would call "no gaps": anything better than a standard stall. */
+export const NO_GAP_PRIVACY: ReadonlySet<StallPrivacy> = new Set(['no_gaps', 'full_height', 'single_user']);
 export const KEY_LABEL: Record<KeyRequired, string> = { yes: 'Key needed', no: 'No key needed', unknown: 'Not sure' };
 export const KEY_OPTION_LABEL: Record<KeyRequired, string> = { yes: 'Yes', no: 'No', unknown: 'Not sure' };
 export const FOOD_LABEL: Record<Food, string> = { none: 'No food', snacks: 'Snacks', hot_food: 'Hot food', unknown: 'Not sure' };
@@ -33,8 +43,8 @@ export const PLOP_SCALE: { plops: 1 | 2 | 3 | 4 | 5; title: string; text: string
   { plops: 1, title: 'Avoid if you can', text: 'Feels dirty or unsafe to use, or you need to ask for a key.' },
   { plops: 2, title: 'In a pinch', text: 'Usable if you have to, with significant shortcomings.' },
   { plops: 3, title: 'Ordinary stop', text: 'A typical gas-station bathroom. Clean enough to use without feeling gross.' },
-  { plops: 4, title: 'Nice stop', text: 'Notably clean and comfortable, with good privacy.' },
-  { plops: 5, title: 'A proper 5-plopper', text: 'Exceptionally clean, with full stall doors. A throne away from home.' },
+  { plops: 4, title: 'Nice stop', text: 'Notably clean and comfortable, with good privacy, such as stall doors without gaps.' },
+  { plops: 5, title: 'A proper 5-plopper', text: 'Exceptionally clean, with floor-to-ceiling stalls or a private room. A throne away from home.' },
 ];
 
 export function scoreTone(score: number | null | undefined): 'great' | 'good' | 'meh' | 'none' {

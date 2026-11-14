@@ -31,7 +31,7 @@ export function Guide() {
         <dd>The average of everyone else’s independent 1–5 ratings, shown to one decimal with how many ratings it is based on. The original rating is not included. A 4.6 from 2 ratings is a much shakier signal than a 4.6 from 200, so the count is always shown.</dd>
       </dl>
       <h2>Details</h2>
-      <p>Cleanliness, stall privacy and whether a key is needed describe the bathroom. Food is a perk and never affects the score. “Not sure” means unknown, which is different from “no”. Details on a stop show the latest visit that reported them, with the date, because places change.</p>
+      <p>Cleanliness, stall privacy and whether a key is needed describe the bathroom. Stall privacy runs from a standard stall with gaps, to a nearly full door with no gaps, to a floor-to-ceiling stall (Buc-ee's style), to a private room. Food and the store get their own optional 1–5 bonus rating, shown separately; it never affects any plop score. “Not sure” means unknown, which is different from “no”. Details on a stop show the latest visit that reported them, with the date, because places change.</p>
       <p><Link to="/">Back to finding a good plop</Link></p>
     </div>
   );
@@ -75,9 +75,9 @@ export function Privacy() {
       <p>There are no visitor accounts, including hidden “anonymous” sign-ins. We never ask for your name, email, phone number or social login. There are no analytics, ads, session recordings or social media trackers.</p>
 
       <h2>The browser token</h2>
-      <p>The first time you submit a stop, rating, vote or report, your browser creates a random code and keeps it in this site’s local storage. It is only used so you can edit your own rating, change your vote, and so the server can limit repeat or rapid submissions. Just browsing never creates it.</p>
+      <p>The first time you submit a stop, rating, vote or report, your browser creates a random code and keeps it in this site’s local storage. It is only used so you can edit your own rating, change your vote, and so the server can keep it to one rating and one vote per stop. Just browsing never creates it.</p>
       <p>The server stores only a keyed hash of that code, not the code itself, alongside what you submitted. That hash is a pseudonymous identifier: it is not your name, but it does link your contributions to each other.</p>
-      <p>Clearing site data or switching browsers creates a new token. That means this site <strong>cannot guarantee one person, one vote</strong>. Rate limits, a spam check, and reports help, but they are not perfect.</p>
+      <p>Clearing site data or switching browsers creates a new token. That means this site <strong>cannot guarantee one person, one vote</strong>. A spam check and reports help, but they are not perfect.</p>
       <p>{hasToken ? 'This browser has a token.' : 'This browser does not have a token.'}{' '}
         {hasToken && (
           <button type="button" className="link-btn" onClick={() => { forgetToken(); setHasToken(false); }}>
@@ -88,11 +88,11 @@ export function Privacy() {
       </p>
 
       <h2>Location</h2>
-      <p>Your location is only requested if you tap “Use my location”. It is used in your browser to center the map and sort results. Precise start points, destinations and your current location are not stored in the Playotic Plops database or in your browser storage. Search text is sent to Nominatim. Searches that look like a street address are also passed, through the Playotic Plops backend, to the US Census Bureau geocoder; the backend does not store them. and route start/end points (plus any stop being checked for a detour) are sent to the FOSSGIS routing server, to answer the request. The routing server notes that route requests are saved in its log files.</p>
+      <p>Your location is only requested if you tap “Use my location”. It is used in your browser to center the map and sort results. Precise start points, destinations and your current location are not stored in the Playotic Plops database or in your browser storage. Search text is sent to Nominatim. Searches that look like a street address are also passed, through the Playotic Plops backend, to the US Census Bureau geocoder; the backend does not store them. Route start and end points (plus any stop being checked for a detour) are sent to the FOSSGIS routing server. The routing server notes that route requests are saved in its log files.</p>
       <p>Stops you add are saved with the map position of the stop itself, which is public.</p>
 
       <h2>Spam and abuse checks</h2>
-      <p>Submissions use Cloudflare Turnstile, a spam check that runs only when you submit something. Cloudflare receives information about your browser and network to do this. For rate limiting, the server briefly stores a keyed hash of your network address, rotated daily and deleted within two days. Raw IP addresses are not stored in the application database.</p>
+      <p>Submissions use Cloudflare Turnstile, a spam check that runs only when you submit something. Cloudflare receives information about your browser and network to do this. Submission rate limits are currently turned off. If the site owner turns them on, the server briefly stores a keyed hash of your network address, rotated daily and deleted within two days. Raw IP addresses are never stored in the application database.</p>
 
       <h2>Who else sees network information</h2>
       <p>No account does not mean no data exists. Like any website, these services see your IP address and browser details when you use the site: GitHub Pages (hosting), Supabase (database and backend), OpenFreeMap (map tiles), Nominatim, the US Census Bureau geocoder and FOSSGIS (search and routes) and Cloudflare (spam check, only when submitting). They may keep their own logs under their own policies.</p>

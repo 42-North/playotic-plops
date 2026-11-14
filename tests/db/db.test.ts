@@ -4,7 +4,7 @@
  *
  *   PLOPS_TEST_PG=postgres://postgres@/postgres?host=/var/tmp&port=54329 npm run test:db
  */
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { resolve } from 'node:path';
 import pg from 'pg';
@@ -45,19 +45,19 @@ async function as<T = any>(role: 'anon' | 'authenticated' | 'service_role', sql:
 }
 const owner = async (sql: string, params: unknown[] = []) => (await pool.query(sql, params)).rows;
 
-const CRITERIA = ['very_clean', 'full_doors', 'no', 'hot_food', 'unspecified'];
+const CRITERIA = ['very_clean', 'full_height', 'no', 'hot_food', 'unspecified'];
 
-async function createStop(who: string, opts: Partial<{ name: string; lat: number; lng: number; rating: number; confirm: boolean }> = {}) {
+async function createStop(who: string, opts: Partial<{ name: string; lat: number; lng: number; rating: number; confirm: boolean; store: number | null }> = {}) {
   const [row] = await as('service_role',
-    `select public.api_create_stop($1,$2,'gas_station','123 Example Rd, Testville',$3,$4,$5,$6::smallint,$7,$8,$9,$10,$11,$12,$13::date) as r`,
-    [who, opts.name ?? 'Test Stop', opts.lat ?? 31.55, opts.lng ?? -97.15, opts.confirm ?? false, opts.rating ?? 5, ...CRITERIA, 'Original comment', today()]);
+    `select public.api_create_stop($1,$2,'gas_station','123 Example Rd, Testville',$3,$4,$5,$6::smallint,$7,$8,$9,$10,$11,$12,$13::date,$14::smallint) as r`,
+    [who, opts.name ?? 'Test Stop', opts.lat ?? 31.55, opts.lng ?? -97.15, opts.confirm ?? false, opts.rating ?? 5, ...CRITERIA, 'Original comment', today(), opts.store ?? null]);
   return row.r as { ok: boolean; stop_id?: string; code?: string; candidates?: unknown[] };
 }
 
-async function rate(who: string, stopId: string, rating: number, extra: Partial<{ cleanliness: string; privacy: string; comment: string | null; visit: string }> = {}) {
+async function rate(who: string, stopId: string, rating: number, extra: Partial<{ cleanliness: string; privacy: string; comment: string | null; visit: string; store: number | null }> = {}) {
   const [row] = await as('service_role',
-    `select public.api_submit_rating($1,$2,$3::smallint,$4,$5,'unknown','unknown','unspecified',$6,$7::date) as r`,
-    [who, stopId, rating, extra.cleanliness ?? 'unknown', extra.privacy ?? 'unknown', extra.comment ?? null, extra.visit ?? today()]);
+    `select public.api_submit_rating($1,$2,$3::smallint,$4,$5,'unknown','unknown','unspecified',$6,$7::date,$8::smallint) as r`,
+    [who, stopId, rating, extra.cleanliness ?? 'unknown', extra.privacy ?? 'unknown', extra.comment ?? null, extra.visit ?? today(), extra.store ?? null]);
   return row.r as { ok: boolean; code?: string; updated?: boolean; rating_id?: string };
 }
 
@@ -84,7 +84,10 @@ describeDb('database rating model', () => {
     await admin.end();
     pool = new pg.Pool({ connectionString: dbUrl(DB), max: 20 });
     await pool.query(readFileSync(resolve(root, 'tests/db/supabase-roles.sql'), 'utf8'));
-    await pool.query(readFileSync(resolve(root, 'supabase/migrations/20261108000001_playotic_plops.sql'), 'utf8'));
+    // Apply every migration in order, exactly as a real project would have them.
+    for (const f of readdirSync(resolve(root, 'supabase/migrations')).filter((x) => x.endsWith('.sql')).sort()) {
+      await pool.query(readFileSync(resolve(root, 'supabase/migrations', f), 'utf8'));
+    }
   }, 60_000);
 
   afterAll(async () => {
@@ -254,13 +257,13 @@ describeDb('database rating model', () => {
   });
 
   it('latest-visit criteria keep unknown distinct and use visit dates', async () => {
-    const s = await createStop(hash(), spot()); // original: very_clean, full_doors, today
+    const s = await createStop(hash(), spot()); // original: very_clean, full_height, today
     const lastWeek = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
     await rate(hash(), s.stop_id!, 2, { cleanliness: 'dirty', privacy: 'gaps', visit: lastWeek });
     await rate(hash(), s.stop_id!, 3); // unknown criteria today: must not overwrite known values
     const d = await summary(s.stop_id!);
     expect(d.cleanliness).toBe('very_clean');
-    expect(d.stall_privacy).toBe('full_doors');
+    expect(d.stall_privacy).toBe('full_height');
     expect(d.tallies.cleanliness).toEqual({ very_clean: 1, dirty: 1 });
   });
 
@@ -346,6 +349,46 @@ describeDb('database rating model', () => {
     await expect(as('anon', `select * from public.stops_in_boxes($1::jsonb)`, [JSON.stringify(Array(41).fill([0, 0, 1, 1]))])).rejects.toThrow();
   });
 
+  it('food & store bonus rating is separate from every plop score', async () => {
+    const s = await createStop(hash(), { ...spot(), rating: 5, store: 2 });
+    await rate(hash(), s.stop_id!, 3, { store: 5 });
+    await rate(hash(), s.stop_id!, 4); // no bonus rating given
+    const d = await summary(s.stop_id!);
+    expect(d.original_rating).toBe(5);
+    expect(Number(d.crowd_avg)).toBe(3.5); // plops only: (3+4)/2
+    expect(d.store_count).toBe(2);         // original's 2 and one crowd 5
+    expect(Number(d.store_avg)).toBe(3.5);
+    expect(d.recent_ratings.map((r: any) => r.store_rating).sort()).toEqual([2, 5, null].sort());
+    const rows = await as('anon', `select store_count, store_avg from public.stops_in_bbox(30,-100,32,-90,true,300) where id = $1`, [s.stop_id]);
+    expect(rows[0].store_count).toBe(2);
+  });
+
+  it('editing a rating updates or clears its bonus rating; hidden ratings drop out', async () => {
+    const s = await createStop(hash(), spot());
+    const me = hash();
+    const first = await rate(me, s.stop_id!, 4, { store: 5 });
+    expect(Number((await summary(s.stop_id!)).store_avg)).toBe(5);
+    await rate(me, s.stop_id!, 4, { store: null });
+    let d = await summary(s.stop_id!);
+    expect(d.store_count).toBe(0);
+    expect(d.store_avg).toBeNull();
+    await rate(me, s.stop_id!, 4, { store: 1 });
+    const [state] = await as('service_role', `select public.api_my_state($1,$2) as s`, [me, s.stop_id]);
+    expect(state.s.rating.store_rating).toBe(1);
+    await owner(`select private.mod_hide_rating($1)`, [first.rating_id]);
+    d = await summary(s.stop_id!);
+    expect(d.store_count).toBe(0);
+  });
+
+  it('accepts the new door options and rejects the retired one', async () => {
+    const s = await createStop(hash(), spot());
+    for (const p of ['gaps', 'no_gaps', 'full_height', 'single_user', 'unknown']) {
+      expect((await rate(hash(), s.stop_id!, 3, { privacy: p })).ok).toBe(true);
+    }
+    await expect(rate(hash(), s.stop_id!, 3, { privacy: 'full_doors' })).rejects.toThrow(/check constraint/);
+    await expect(rate(hash(), s.stop_id!, 3, { store: 6 })).rejects.toThrow(/check constraint/);
+  });
+
   describe('edge function wired to the real database', () => {
     const ORIGIN = 'https://plops.example';
     const pgRpc: Deps['rpc'] = async (fn, args) => {
@@ -354,7 +397,7 @@ describeDb('database rating model', () => {
       const [row] = await as('service_role', sql, keys.map((k) => (args[k] !== null && typeof args[k] === 'object' ? JSON.stringify(args[k]) : args[k])));
       return row.r;
     };
-    const deps: Deps = { rpc: pgRpc, verifyChallenge: async () => true, hashSecret: 'x'.repeat(40), allowedOrigins: [ORIGIN], challengeRequired: true };
+    const deps: Deps = { rpc: pgRpc, verifyChallenge: async () => true, hashSecret: 'x'.repeat(40), allowedOrigins: [ORIGIN], challengeRequired: true, rateLimits: true };
     const call = (body: Record<string, unknown>, ip = '198.51.100.7') =>
       handle(new Request('https://fn/plops', { method: 'POST', headers: { origin: ORIGIN, 'x-forwarded-for': ip }, body: JSON.stringify({ challenge: 'ok-challenge-token', ...body }) }), deps);
     const tok = () => randomBytes(32).toString('base64url');
@@ -362,7 +405,7 @@ describeDb('database rating model', () => {
     it('create, rate, edit, vote and read own state end to end', async () => {
       const creator = tok();
       const p = spot();
-      const created = await call({ action: 'create_stop', token: creator, name: 'Edge Fuel', category: 'travel_center', address: '9 Edge Way', lat: p.lat, lng: p.lng, rating: 5, stall_privacy: 'full_doors', visit_date: today() });
+      const created = await call({ action: 'create_stop', token: creator, name: 'Edge Fuel', category: 'travel_center', address: '9 Edge Way', lat: p.lat, lng: p.lng, rating: 5, stall_privacy: 'full_height', store_rating: 4, visit_date: today() });
       expect(created.status).toBe(200);
       const { stop_id } = (await created.json()) as { stop_id: string };
 
@@ -401,6 +444,23 @@ describeDb('database rating model', () => {
       }
       expect(results.slice(0, 5)).toEqual([200, 200, 200, 200, 200]);
       expect(results[5]).toBe(429);
+    });
+
+    it('accepts many submissions when rate limits are off (the default)', async () => {
+      const relaxed: Deps = { ...deps, rateLimits: false };
+      const p = spot();
+      const t = tok();
+      for (let i = 0; i < 8; i++) {
+        const r = await handle(new Request('https://fn/plops', { method: 'POST', headers: { origin: ORIGIN, 'x-forwarded-for': '198.51.100.99' },
+          body: JSON.stringify({ challenge: 'ok-challenge-token', action: 'create_stop', token: t, name: `Open Stop ${i}`, category: 'gas_station', address: '1 Open Ln', lat: p.lat + i * 0.01, lng: p.lng, rating: 3, visit_date: today() }) }), relaxed);
+        expect(r.status).toBe(200);
+      }
+      const ev = await owner(`select count(*)::int n from private.rate_events where action like 'create_stop%'`);
+      expect(ev[0].n).toBeGreaterThan(0); // only from the limits-on test above; nothing recorded here
+      const before = ev[0].n;
+      await handle(new Request('https://fn/plops', { method: 'POST', headers: { origin: ORIGIN },
+        body: JSON.stringify({ challenge: 'ok-challenge-token', action: 'create_stop', token: t, name: 'Open Stop X', category: 'gas_station', address: '1 Open Ln', lat: p.lat + 0.2, lng: p.lng, rating: 3, visit_date: today() }) }), relaxed);
+      expect((await owner(`select count(*)::int n from private.rate_events where action like 'create_stop%'`))[0].n).toBe(before);
       const raw = await owner(`select count(*)::int n from private.rate_events where encode(bucket,'escape') like '%192.0.2%'`);
       expect(raw[0].n).toBe(0);
     });

@@ -141,6 +141,16 @@ export default function StopDetail() {
             </section>
           )}
 
+          <section className="bonus-panel" aria-labelledby="bonus-h">
+            <h2 id="bonus-h" className="panel-label"><Icon name="food" size={16} /> Bonus: food &amp; store</h2>
+            {stop.store_count > 0 ? (
+              <p className="bonus-score"><strong>{Number(stop.store_avg).toFixed(1)} / 5</strong> <span className="small">from {plural(stop.store_count, 'rating')}</span></p>
+            ) : (
+              <p className="small muted">No food &amp; store ratings yet.</p>
+            )}
+            <p className="small muted">Just a perk. It never changes the plop scores above.</p>
+          </section>
+
           <section className="criteria" aria-labelledby="crit-h">
             <h2 id="crit-h" className="section-h">What travelers reported</h2>
             <p className="muted small">Each line shows the most recent visit that reported it, with counts from all visible ratings.</p>
@@ -148,7 +158,7 @@ export default function StopDetail() {
               <Criterion icon="sparkle" label="Cleanliness" value={stop.cleanliness ? CLEANLINESS_LABEL[stop.cleanliness as Cleanliness] : null} date={stop.cleanliness_visit_date} tally={stop.tallies.cleanliness} labels={CLEANLINESS_LABEL} />
               <Criterion icon="door" label="Stall privacy" value={stop.stall_privacy ? PRIVACY_LABEL[stop.stall_privacy as StallPrivacy] : null} date={stop.stall_privacy_visit_date} tally={stop.tallies.stall_privacy} labels={PRIVACY_LABEL} />
               <Criterion icon="key" label="Access" value={stop.key_required ? KEY_LABEL[stop.key_required as KeyRequired] : null} date={stop.key_required_visit_date} tally={stop.tallies.key_required} labels={KEY_LABEL} />
-              <Criterion icon="food" label="Food (perk, not scored)" value={stop.food ? FOOD_LABEL[stop.food as Food] : null} date={stop.food_visit_date} tally={stop.tallies.food} labels={FOOD_LABEL} />
+              <Criterion icon="food" label="Food (bonus)" value={stop.food ? FOOD_LABEL[stop.food as Food] : null} date={stop.food_visit_date} tally={stop.tallies.food} labels={FOOD_LABEL} />
             </dl>
             {stop.last_visit_date && <p className="small"><Icon name="clock" size={15} /> Most recent visit {daysAgo(stop.last_visit_date)} ({shortDate(stop.last_visit_date)})</p>}
           </section>
@@ -221,6 +231,7 @@ function RatingItem({ r, onReport }: { r: PublicRating; onReport: () => void }) 
     r.stall_privacy !== 'unknown' && PRIVACY_LABEL[r.stall_privacy],
     r.key_required !== 'unknown' && KEY_LABEL[r.key_required],
     r.food !== 'unknown' && FOOD_LABEL[r.food],
+    r.store_rating != null && `Food & store ${r.store_rating}/5`,
     r.restroom !== 'unspecified' && `${RESTROOM_LABEL[r.restroom]} room`,
   ].filter(Boolean);
   const edited = r.updated_at.slice(0, 16) !== r.created_at.slice(0, 16);

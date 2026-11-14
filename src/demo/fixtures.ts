@@ -3,7 +3,7 @@
 import type { Cleanliness, Food, KeyRequired, StallPrivacy } from '../lib/rating';
 import type { RecRating, RecStop, RecVote } from './aggregate';
 
-type C = { c?: Cleanliness; p?: StallPrivacy; k?: KeyRequired; f?: Food };
+type C = { c?: Cleanliness; p?: StallPrivacy; k?: KeyRequired; f?: Food; s?: number };
 
 interface FixtureStop {
   stop: Omit<RecStop, 'creator' | 'created_at'>;
@@ -22,10 +22,10 @@ const many = (n: number, plops: number, startDay: number, c: C = {}): [number, n
 const FIXTURES: FixtureStop[] = [
   {
     stop: S('d0000000-0000-4000-8000-000000000001', 'Lone Star Travel Stop', 'travel_center', '123 Example Rd, Waco, TX (fictional)', 31.61, -97.105),
-    original: { rating: 5, daysAgo: 60, c: 'very_clean', p: 'full_doors', k: 'no', f: 'hot_food', comment: 'Spotless. Full-height stall doors. Kolaches by the register.' },
+    original: { rating: 5, daysAgo: 60, c: 'very_clean', p: 'full_height', k: 'no', f: 'hot_food', s: 5, comment: 'Spotless. Full-height stall doors. Kolaches by the register.' },
     crowd: [
-      [5, 2, { c: 'very_clean', p: 'full_doors', k: 'no', f: 'hot_food' }, 'A solid 5-plopper. Clean stalls and proper doors.'],
-      [4, 5, { c: 'okay', p: 'full_doors' }, 'Busy at lunch, still decent.'],
+      [5, 2, { c: 'very_clean', p: 'full_height', k: 'no', f: 'hot_food', s: 5 }, 'A solid 5-plopper. Clean stalls and proper doors.'],
+      [4, 5, { c: 'okay', p: 'full_height' }, 'Busy at lunch, still decent.'],
       ...many(10, 5, 8, { c: 'very_clean' }),
       ...many(6, 4, 11),
     ],
@@ -33,26 +33,26 @@ const FIXTURES: FixtureStop[] = [
   },
   {
     stop: S('d0000000-0000-4000-8000-000000000002', 'Quickway Fuel', 'gas_station', '45 Sample Ave, Waco, TX (fictional)', 31.52, -97.17),
-    original: { rating: 3, daysAgo: 40, c: 'okay', p: 'gaps', k: 'no', f: 'snacks' },
+    original: { rating: 3, daysAgo: 40, c: 'okay', p: 'gaps', k: 'no', f: 'snacks', s: 3 },
     crowd: [[3, 4, { c: 'okay', p: 'gaps' }, 'Fine. Nothing special.'], [4, 12], [2, 20, { c: 'dirty' }, 'Out of paper towels.'], [3, 33]],
     votes: [6, 2],
   },
   {
     stop: S('d0000000-0000-4000-8000-000000000003', 'Bluebonnet Rest Area', 'rest_area', 'I-35 southbound, mile 315 (fictional)', 31.33, -97.255),
-    original: { rating: 4, daysAgo: 90, c: 'very_clean', p: 'full_doors', k: 'no', f: 'none' },
-    crowd: [[5, 1, { c: 'very_clean', p: 'full_doors' }, 'Recently renovated. Picnic tables too.'], [5, 9], [5, 14], [4, 18], [4, 25], [4, 30], [4, 41], [4, 52], [3, 70, { c: 'okay' }]],
+    original: { rating: 4, daysAgo: 90, c: 'very_clean', p: 'no_gaps', k: 'no', f: 'none' },
+    crowd: [[5, 1, { c: 'very_clean', p: 'no_gaps' }, 'Recently renovated. Picnic tables too.'], [5, 9], [5, 14], [4, 18], [4, 25], [4, 30], [4, 41], [4, 52], [3, 70, { c: 'okay' }]],
     votes: [9, 1],
   },
   {
     stop: S('d0000000-0000-4000-8000-000000000004', 'Pecan Grove Gas & Go', 'gas_station', '9 Placeholder St, Temple, TX (fictional)', 31.09, -97.36),
-    original: { rating: 2, daysAgo: 21, c: 'dirty', p: 'gaps', k: 'yes', f: 'snacks', comment: 'Had to ask for the key at the counter.' },
+    original: { rating: 2, daysAgo: 21, c: 'dirty', p: 'gaps', k: 'yes', f: 'snacks', s: 2, comment: 'Had to ask for the key at the counter.' },
     crowd: [[2, 6, { c: 'dirty', k: 'yes' }], [3, 15, { c: 'okay' }]],
     votes: [3, 0],
   },
   {
     stop: S('d0000000-0000-4000-8000-000000000005', 'Armadillo Junction Travel Plaza', 'travel_center', '700 Demo Pkwy, Salado, TX (fictional)', 30.945, -97.53),
-    original: { rating: 4, daysAgo: 120, c: 'very_clean', p: 'full_doors', k: 'no', f: 'hot_food' },
-    crowd: [[5, 3, { c: 'very_clean', p: 'full_doors', k: 'no', f: 'hot_food' }, 'Huge, clean, and the brisket counter is open late.'], ...many(13, 5, 7), ...many(20, 4, 9)],
+    original: { rating: 4, daysAgo: 120, c: 'very_clean', p: 'full_height', k: 'no', f: 'hot_food', s: 4 },
+    crowd: [[5, 3, { c: 'very_clean', p: 'full_height', k: 'no', f: 'hot_food', s: 5 }, 'Huge, clean, and the brisket counter is open late.'], ...many(13, 5, 7), ...many(20, 4, 9)],
     votes: [14, 5],
   },
   {
@@ -69,14 +69,14 @@ const FIXTURES: FixtureStop[] = [
   },
   {
     stop: S('d0000000-0000-4000-8000-000000000008', 'Prairie Wind Fuel Center', 'travel_center', '1 Example Hwy, Waxahachie, TX (fictional)', 32.41, -96.84),
-    original: { rating: 5, daysAgo: 75, c: 'very_clean', p: 'full_doors', k: 'no', f: 'hot_food' },
-    crowd: [[5, 2, { c: 'very_clean', p: 'full_doors' }], ...many(9, 5, 6), [4, 40], [4, 55]],
+    original: { rating: 5, daysAgo: 75, c: 'very_clean', p: 'no_gaps', k: 'no', f: 'hot_food', s: 4 },
+    crowd: [[5, 2, { c: 'very_clean', p: 'no_gaps' }], ...many(9, 5, 6), [4, 40], [4, 55]],
     votes: [10, 0],
   },
   {
     stop: S('d0000000-0000-4000-8000-000000000009', 'Bosque Bend Gas', 'gas_station', '88 Fictional Rd, Waco, TX (fictional)', 31.65, -97.26),
     original: { rating: 3, daysAgo: 50, c: 'okay', p: 'gaps', f: 'snacks' },
-    crowd: [[4, 10, { c: 'okay', p: 'full_doors' }], [4, 17], [3, 24], [3, 31], [3, 38]],
+    crowd: [[4, 10, { c: 'okay', p: 'no_gaps' }], [4, 17], [3, 24], [3, 31], [3, 38]],
     votes: [2, 2],
   },
 ];
@@ -94,7 +94,7 @@ export function buildFixtures(now = new Date()) {
     const mk = (i: number, who: string, isOriginal: boolean, plops: number, days: number, c: C = {}, comment?: string): RecRating => ({
       id: `${fx.stop.id.slice(0, 24)}${String(i).padStart(12, '0')}`,
       stop_id: fx.stop.id, who, is_original: isOriginal, rating: plops,
-      cleanliness: c.c ?? 'unknown', stall_privacy: c.p ?? 'unknown', key_required: c.k ?? 'unknown', food: c.f ?? 'unknown',
+      cleanliness: c.c ?? 'unknown', stall_privacy: c.p ?? 'unknown', key_required: c.k ?? 'unknown', food: c.f ?? 'unknown', store_rating: c.s ?? null,
       restroom: 'unspecified', comment: comment ?? null,
       visit_date: isoDay(days, now), created_at: isoTime(days, now), updated_at: isoTime(days, now), status: 'visible',
     });

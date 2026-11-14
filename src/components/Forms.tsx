@@ -5,7 +5,7 @@ import type { Place } from '../geo/provider';
 import { useServices } from '../services';
 import type { LatLng } from '../lib/geo';
 import {
-  CLEANLINESS_LABEL, FOOD_OPTION_LABEL, KEY_OPTION_LABEL, PLOP_SCALE, PRIVACY_LABEL, RESTROOM_LABEL,
+  CLEANLINESS_LABEL, FOOD_OPTION_LABEL, KEY_OPTION_LABEL, PLOP_SCALE, PRIVACY_LABEL, PRIVACY_ORDER, RESTROOM_LABEL,
   type Cleanliness, type Food, type KeyRequired, type Restroom, type StallPrivacy,
 } from '../lib/rating';
 import { Icon, PlopIcon } from './Art';
@@ -35,7 +35,7 @@ const opts = <T extends string>(labels: Record<T, string>, order: T[]) => order.
 
 export const emptyRating = (): RatingInput => ({
   rating: 0, cleanliness: 'unknown', stall_privacy: 'unknown', key_required: 'unknown', food: 'unknown',
-  restroom: 'unspecified', comment: '', visit_date: todayLocalISO(),
+  restroom: 'unspecified', comment: '', visit_date: todayLocalISO(), store_rating: 0,
 });
 
 export function PlopPicker({ value, onChange }: { value: number; onChange: (n: number) => void }) {
@@ -77,9 +77,16 @@ export function RatingFields({ value, onChange }: { value: RatingInput; onChange
       <PlopPicker value={value.rating} onChange={set('rating')} />
       <p className="hint">Not sure about something? Leave it on “Not sure”. That is different from a “no”.</p>
       <Segmented<Cleanliness> legend="Cleanliness" value={value.cleanliness} onChange={set('cleanliness')} options={opts(CLEANLINESS_LABEL, ['dirty', 'okay', 'very_clean', 'unknown'])} />
-      <Segmented<StallPrivacy> legend="Stall privacy" value={value.stall_privacy} onChange={set('stall_privacy')} options={opts(PRIVACY_LABEL, ['gaps', 'full_doors', 'single_user', 'unknown'])} />
+      <Segmented<StallPrivacy> legend="Stall privacy" hint="Floor-to-ceiling means full-height walls and door, like Buc-ee's. “No gaps” is a nearly full door you can't see through." value={value.stall_privacy} onChange={set('stall_privacy')} options={opts(PRIVACY_LABEL, PRIVACY_ORDER)} />
       <Segmented<KeyRequired> legend="Key required?" value={value.key_required} onChange={set('key_required')} options={opts(KEY_OPTION_LABEL, ['yes', 'no', 'unknown'])} />
-      <Segmented<Food> legend="Food" hint="A perk only. Food does not change the bathroom score." value={value.food} onChange={set('food')} options={opts(FOOD_OPTION_LABEL, ['none', 'snacks', 'hot_food', 'unknown'])} />
+      <fieldset className="bonus-box">
+        <legend>Bonus: food &amp; store <span className="opt">(optional)</span></legend>
+        <p className="hint">Just for fun. None of this changes the plop rating, which is only about the bathroom.</p>
+        <Segmented<Food> legend="What food do they have?" value={value.food} onChange={set('food')} options={opts(FOOD_OPTION_LABEL, ['none', 'snacks', 'hot_food', 'unknown'])} />
+        <Segmented<string> legend="Rate the food & store" value={value.store_rating ? String(value.store_rating) : 'unknown'}
+          onChange={(v) => set('store_rating')(v === 'unknown' ? 0 : Number(v))}
+          options={[{ value: '1', label: '1' }, { value: '2', label: '2' }, { value: '3', label: '3' }, { value: '4', label: '4' }, { value: '5', label: '5' }, { value: 'unknown', label: 'Skip' }]} />
+      </fieldset>
       <Segmented<Restroom> legend="Which restroom? (optional)" value={value.restroom} onChange={set('restroom')} options={opts(RESTROOM_LABEL, ['mens', 'womens', 'all_gender', 'unspecified'])} />
       <div className="field">
         <label htmlFor={dateId}>Visit date</label>

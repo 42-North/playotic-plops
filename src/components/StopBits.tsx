@@ -66,6 +66,11 @@ export function StopCard({ s, distance, extra, selected, onFocus }: { s: StopSum
           {conf && <> · <span className="conf">{conf}</span></>}
         </p>
         <CriteriaChips s={s} compact />
+        {s.store_count > 0 && (
+          <p className="sc-bonus" aria-label={`Food and store bonus ${Number(s.store_avg).toFixed(1)} out of 5 from ${plural(s.store_count, 'rating')}`}>
+            <Icon name="food" size={14} /> Food &amp; store {Number(s.store_avg).toFixed(1)}/5 <span className="muted">({s.store_count})</span>
+          </p>
+        )}
         {s.last_visit_date && <p className="sc-fresh"><Icon name="clock" size={14} /> Last visit {daysAgo(s.last_visit_date)}</p>}
         {s.status === 'closed' && <p className="badge-closed">Marked closed</p>}
       </div>

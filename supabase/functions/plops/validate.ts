@@ -3,7 +3,7 @@
 
 export const CATEGORIES = ['gas_station', 'travel_center', 'rest_area'] as const;
 export const CLEANLINESS = ['dirty', 'okay', 'very_clean', 'unknown'] as const;
-export const STALL_PRIVACY = ['gaps', 'full_doors', 'single_user', 'unknown'] as const;
+export const STALL_PRIVACY = ['gaps', 'no_gaps', 'full_height', 'single_user', 'unknown'] as const;
 export const KEY_REQUIRED = ['yes', 'no', 'unknown'] as const;
 export const FOOD = ['none', 'snacks', 'hot_food', 'unknown'] as const;
 export const RESTROOM = ['mens', 'womens', 'all_gender', 'unspecified'] as const;
@@ -84,8 +84,18 @@ export function plopRating(v: unknown): number {
   return v;
 }
 
+/** Optional food & store bonus rating: whole number 1-5, or null when not given. */
+export function storeRating(v: unknown): number | null {
+  if (v === undefined || v === null || v === 0) return null;
+  if (typeof v !== 'number' || !Number.isInteger(v) || v < 1 || v > 5) {
+    throw new ValidationError('store_rating', 'Food & store rating must be a whole number from 1 to 5, or left blank.');
+  }
+  return v;
+}
+
 export interface RatingFields {
   rating: number;
+  store_rating: number | null;
   cleanliness: string;
   stall_privacy: string;
   key_required: string;
@@ -98,6 +108,7 @@ export interface RatingFields {
 export function ratingFields(b: Obj, now?: Date): RatingFields {
   return {
     rating: plopRating(b.rating),
+    store_rating: storeRating(b.store_rating),
     cleanliness: oneOf(b.cleanliness, CLEANLINESS, 'cleanliness', 'unknown'),
     stall_privacy: oneOf(b.stall_privacy, STALL_PRIVACY, 'stall_privacy', 'unknown'),
     key_required: oneOf(b.key_required, KEY_REQUIRED, 'key_required', 'unknown'),

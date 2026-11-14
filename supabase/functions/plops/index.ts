@@ -8,6 +8,7 @@
 // Optional:
 //   TURNSTILE_HOSTNAMES    comma-separated hostnames the challenge must have been solved on
 //   CHALLENGE_MODE=off     local development only; disables challenge verification
+//   RATE_LIMITS=on         turns on per-browser/per-network submission limits (off by default)
 // Provided by Supabase automatically: SUPABASE_URL, SUPABASE_SECRET_KEYS (or legacy SUPABASE_SERVICE_ROLE_KEY)
 
 import { handle, postgrestRpc, turnstileVerifier } from './core.ts';
@@ -57,6 +58,7 @@ Deno.serve((req) => {
     hashSecret,
     allowedOrigins: list('ALLOWED_ORIGINS'),
     challengeRequired: !challengeOff,
+    rateLimits: env('RATE_LIMITS').toLowerCase() === 'on',
     log: (m) => console.error(m),
   });
 });
