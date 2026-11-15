@@ -8,7 +8,7 @@ import {
   CLEANLINESS_LABEL, FOOD_OPTION_LABEL, KEY_OPTION_LABEL, PLOP_SCALE, PRIVACY_LABEL, PRIVACY_ORDER, RESTROOM_LABEL,
   type Cleanliness, type Food, type KeyRequired, type Restroom, type StallPrivacy,
 } from '../lib/rating';
-import { Icon, PlopIcon } from './Art';
+import { Icon, PlopTier } from './Art';
 
 /** Radio group styled as pill buttons. Native radios keep keyboard and screen-reader behaviour. */
 export function Segmented<T extends string>({ legend, value, options, onChange, hint }: {
@@ -49,7 +49,7 @@ export function PlopPicker({ value, onChange }: { value: number; onChange: (n: n
         {PLOP_SCALE.map((p) => (
           <label key={p.plops} className={`pp-opt${value === p.plops ? ' on' : ''}`}>
             <input type="radio" name={name} value={p.plops} checked={value === p.plops} onChange={() => onChange(p.plops)} />
-            <PlopIcon size={34} />
+            <PlopTier value={p.plops} size={44} />
             <span className="pp-num" aria-hidden="true">{p.plops}</span>
             <span className="sr-only">{p.plops} plop{p.plops > 1 ? 's' : ''}: {p.text}</span>
           </label>

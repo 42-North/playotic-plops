@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import type { MyState, PublicRating, StopDetail as Detail } from '../api/types';
-import { Icon, Mascot } from '../components/Art';
+import { Icon, Mascot, PlopTier } from '../components/Art';
 import { Notice, Spinner, useToast } from '../components/Shell';
 import { PinText, PlopsInline } from '../components/StopBits';
 import { confidence, daysAgo, plural, ratingCount, shortDate } from '../lib/format';
@@ -238,7 +238,7 @@ function RatingItem({ r, onReport }: { r: PublicRating; onReport: () => void }) 
   return (
     <li className="rating-item">
       <div className="ri-head">
-        <Mascot size={34} />
+        <PlopTier value={r.rating} size={44} />
         <div>
           <p className="ri-score"><PlopsInline n={r.rating} /> {r.is_original && <span className="tag">Original</span>}</p>
           <p className="muted small">

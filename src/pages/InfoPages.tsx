@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Mascot, PlopRow } from '../components/Art';
+import { Logo, PlopTier } from '../components/Art';
 import { PageHead } from '../components/Shell';
 import { forgetToken, peekToken } from '../lib/identity';
 import { PLOP_SCALE } from '../lib/rating';
@@ -13,7 +13,7 @@ export function Guide() {
       <ol className="scale-list">
         {PLOP_SCALE.slice().reverse().map((p) => (
           <li key={p.plops}>
-            <PlopRow value={p.plops} size={22} />
+            <PlopTier value={p.plops} size={56} />
             <div>
               <h2>{p.plops} plop{p.plops > 1 ? 's' : ''} · {p.title}</h2>
               <p>{p.text}</p>
@@ -42,7 +42,7 @@ export function About() {
   return (
     <div className="page narrow prose">
       <div className="about-hero">
-        <Mascot size={96} />
+        <Logo size={96} />
         <div>
           <h1>Playotic Plops</h1>
           <p className="lede">A crappy guide to good bathrooms: a crowdsourced guide to clean, convenient public bathrooms for people on the road.</p>

@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useServices } from '../services';
-import { Icon, Mascot } from './Art';
+import { Icon, Logo, Mascot } from './Art';
 
 type Toast = { id: number; text: string; tone: 'ok' | 'demo' | 'error' };
 const ToastCtx = createContext<(text: string, tone?: Toast['tone']) => void>(() => {});
@@ -26,7 +26,7 @@ export function Shell({ children }: { children: ReactNode }) {
       )}
       <header className="topbar">
         <Link to="/" className="brand" aria-label="Playotic Plops home">
-          <Mascot size={40} />
+          <Logo size={44} />
           <span className="brand-text">
             <span className="brand-name">Playotic Plops</span>
             <span className="brand-tag">A crappy guide to good bathrooms.</span>

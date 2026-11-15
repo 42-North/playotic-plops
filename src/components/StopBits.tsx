@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import type { StopSummary } from '../api/types';
 import { confidence, crowdScore, daysAgo, plural, ratingCount } from '../lib/format';
 import { CATEGORY_LABEL, CLEANLINESS_LABEL, FOOD_LABEL, KEY_LABEL, PRIVACY_LABEL, scoreTone } from '../lib/rating';
-import { Icon, PlopIcon } from './Art';
+import { Icon, PlopSmall } from './Art';
 
 /** The crowd score is the headline; the count is always shown beside it. */
 export function CrowdBadge({ s, size = 'md' }: { s: Pick<StopSummary, 'crowd_avg' | 'crowd_count'>; size?: 'md' | 'lg' }) {
@@ -93,7 +93,7 @@ export function pinAria(s: StopSummary) {
 export function PlopsInline({ n }: { n: number }) {
   return (
     <span className="plops-inline" aria-label={`${n} plops`}>
-      <PlopIcon size={20} /> {n}
+      <PlopSmall size={18} /> {n}
     </span>
   );
 }

@@ -1,65 +1,38 @@
 // Original SVG art: the plop mascot, plop rating icons and a consistent stroke icon set.
 import type { ReactElement, SVGProps } from 'react';
 
-const TIERS = (
-  <>
-    <rect x="9" y="61" width="82" height="25" rx="12.5" />
-    <rect x="19" y="43" width="62" height="23" rx="11.5" />
-    <rect x="30" y="27" width="40" height="20" rx="10" />
-    <path d="M41 30c-1-9 7-15 16-21 1 6 6 12 1 20-3 4-9 5-17 1z" />
-  </>
-);
+import logoUrl from '../assets/logo.png';
+import plop1 from '../assets/plop-1.png';
+import plop2 from '../assets/plop-2.png';
+import plop3 from '../assets/plop-3.png';
+import plop4 from '../assets/plop-4.png';
+import plop5 from '../assets/plop-5.png';
+import plopSmall from '../assets/plop-small.png';
 
-/** Friendly smiling plop. Purely decorative unless `title` is given. */
-export function Mascot({ size = 48, title, mood = 'happy', className }: { size?: number; title?: string; mood?: 'happy' | 'wink'; className?: string }) {
-  return (
-    <svg viewBox="0 0 100 92" width={size} height={size * 0.92} className={className} role={title ? 'img' : undefined} aria-hidden={title ? undefined : true}>
-      {title && <title>{title}</title>}
-      <g fill="#fff0d9" stroke="#fff0d9" strokeWidth="9" strokeLinejoin="round">{TIERS}</g>
-      <g fill="#3a1d10" stroke="#3a1d10" strokeWidth="4.5" strokeLinejoin="round">{TIERS}</g>
-      <g fill="#94532a">{TIERS}</g>
-      <g fill="none" stroke="#c98a52" strokeWidth="3.2" strokeLinecap="round" opacity=".85">
-        <path d="M17 70c3-3 8-4 13-4" />
-        <path d="M27 50c3-2 6-3 10-3" />
-        <path d="M37 33c2-2 4-2 7-2" />
-        <path d="M49 21c2-3 4-5 6-7" />
-      </g>
-      <g fill="#2a130a">
-        {mood === 'wink' ? <path d="M35 55q5-4 10 0" stroke="#2a130a" strokeWidth="3" fill="none" strokeLinecap="round" /> : <ellipse cx="40" cy="55" rx="4.6" ry="5.6" />}
-        <ellipse cx="60" cy="55" rx="4.6" ry="5.6" />
-      </g>
-      <g fill="#fff">
-        {mood !== 'wink' && <circle cx="41.6" cy="53" r="1.6" />}
-        <circle cx="61.6" cy="53" r="1.6" />
-      </g>
-      <path d="M41 68q9 9 18 0" fill="#5a1f12" stroke="#2a130a" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M45 71.5q5 3 10 0" fill="#e2785c" />
-      <ellipse cx="31" cy="64" rx="4.5" ry="2.6" fill="#e08a6a" opacity=".7" />
-      <ellipse cx="69" cy="64" rx="4.5" ry="2.6" fill="#e08a6a" opacity=".7" />
-    </svg>
-  );
+const TIER_SRC = [plop1, plop2, plop3, plop4, plop5];
+
+/** The Playotic Plops logo (toilet roll). Decorative unless `alt` is given. */
+export function Logo({ size = 44, alt = '', className }: { size?: number; alt?: string; className?: string }) {
+  return <img src={logoUrl} width={size} height={size} alt={alt} className={`logo-img ${className ?? ''}`} decoding="async" />;
 }
 
-/** Plop rating icon. `filled` plops count toward the score; empty ones are outlines. */
-export function PlopIcon({ size = 20, filled = true, className }: { size?: number; filled?: boolean; className?: string }) {
-  return (
-    <svg viewBox="0 0 100 92" width={size} height={size * 0.92} className={className} aria-hidden="true">
-      <g fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={filled ? 0 : 7} strokeLinejoin="round">
-        {filled ? TIERS : <path d="M21 86h58a12.5 12.5 0 0 0 0-25h-2a11.5 11.5 0 0 0-7-18 10 10 0 0 0-12-15c3-7 1-13 0-19-9 6-17 12-16 21a10 10 0 0 0-7 14 11.5 11.5 0 0 0-14 17h0a12.5 12.5 0 0 0 0 25z" />}
-      </g>
-    </svg>
-  );
+/**
+ * One rating icon per plop level: plain (1), sparkles (2–3), crown (4), crown and laurels (5).
+ * All five share one frame so the plop itself never moves. Decorative unless `alt` is given.
+ */
+export function PlopTier({ value, size = 40, alt = '', className }: { value: number; size?: number; alt?: string; className?: string }) {
+  const n = Math.min(5, Math.max(1, Math.round(value)));
+  return <img src={TIER_SRC[n - 1]} width={size} height={size} alt={alt} className={`plop-tier ${className ?? ''}`} decoding="async" />;
 }
 
-/** A row of plops, e.g. 5 plops → 5 filled. Includes an accessible label. */
-export function PlopRow({ value, size = 16 }: { value: number; size?: number }) {
-  return (
-    <span className="plop-row" role="img" aria-label={`${value} out of 5 plops`}>
-      {[1, 2, 3, 4, 5].map((i) => (
-        <PlopIcon key={i} size={size} filled={i <= value} />
-      ))}
-    </span>
-  );
+/** A plain plop, cropped tight, for small inline use next to a number. */
+export function PlopSmall({ size = 18, className }: { size?: number; className?: string }) {
+  return <img src={plopSmall} width={size} height={size} alt="" className={`plop-small ${className ?? ''}`} decoding="async" />;
+}
+
+/** Friendly plop for loading and empty states (the plain level-1 plop). */
+export function Mascot({ size = 48, className }: { size?: number; mood?: 'happy' | 'wink'; className?: string; title?: string }) {
+  return <PlopTier value={1} size={size} className={className} />;
 }
 
 type IconName =
