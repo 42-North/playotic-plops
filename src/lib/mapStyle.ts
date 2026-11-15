@@ -1,10 +1,10 @@
-// Loads a MapLibre style and recolours it to the cocoa palette so the basemap matches the app.
+// Loads a MapLibre style and recolours it to the cream & caramel palette so the basemap matches the app.
 import type { StyleSpecification, LayerSpecification } from 'maplibre-gl';
 
 export const FALLBACK_STYLE: StyleSpecification = {
   version: 8,
   sources: {},
-  layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#2a1b15' } }],
+  layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#f3ebde' } }],
 };
 
 const has = (id: string, ...words: string[]) => words.some((w) => id.includes(w));
@@ -15,41 +15,41 @@ export function recolor(style: StyleSpecification): StyleSpecification {
     const paint: Record<string, unknown> = { ...((l as { paint?: Record<string, unknown> }).paint ?? {}) };
     switch (l.type) {
       case 'background':
-        paint['background-color'] = '#2a1b15';
+        paint['background-color'] = '#f3ebde';
         break;
       case 'fill':
         delete paint['fill-pattern'];
         delete paint['fill-outline-color'];
         paint['fill-color'] = has(id, 'water', 'ocean', 'lake', 'river')
-          ? '#1f2b2b'
+          ? '#cfe2e3'
           : has(id, 'park', 'wood', 'forest', 'grass', 'landcover', 'scrub', 'farmland', 'wetland')
-            ? '#33301e'
+            ? '#e2e6cc'
             : has(id, 'building')
-              ? '#3a281f'
-              : has(id, 'ice', 'glacier', 'sand') ? '#3b2c21' : '#2f1f19';
+              ? '#e8dccb'
+              : has(id, 'ice', 'glacier', 'sand') ? '#efe5d2' : '#f0e7d9';
         if (has(id, 'park', 'wood', 'landcover')) paint['fill-opacity'] = 0.75;
         break;
       case 'fill-extrusion':
-        paint['fill-extrusion-color'] = '#3a281f';
+        paint['fill-extrusion-color'] = '#e8dccb';
         break;
       case 'line': {
         delete paint['line-pattern'];
-        let c = '#4b3329';
-        if (has(id, 'water', 'river', 'stream', 'canal')) c = '#24393a';
-        else if (has(id, 'casing', 'outline')) c = '#1e130f';
-        else if (has(id, 'motorway', 'trunk', 'highway_major', 'major_road')) c = '#b77a43';
-        else if (has(id, 'primary')) c = '#8a5c3b';
-        else if (has(id, 'secondary', 'tertiary')) c = '#664532';
-        else if (has(id, 'rail', 'transit')) c = '#3f2c24';
-        else if (has(id, 'boundary', 'admin')) c = '#7b5a48';
+        let c = '#ffffff';
+        if (has(id, 'water', 'river', 'stream', 'canal')) c = '#a9cdd0';
+        else if (has(id, 'casing', 'outline')) c = '#dccab0';
+        else if (has(id, 'motorway', 'trunk', 'highway_major', 'major_road')) c = '#f0b860';
+        else if (has(id, 'primary')) c = '#f7d9a8';
+        else if (has(id, 'secondary', 'tertiary')) c = '#fffaf2';
+        else if (has(id, 'rail', 'transit')) c = '#d6c8b4';
+        else if (has(id, 'boundary', 'admin')) c = '#b9a58c';
         paint['line-color'] = c;
         break;
       }
       case 'symbol':
-        paint['text-color'] = has(id, 'water', 'ocean', 'lake') ? '#9fb5b0' : '#ead5b7';
-        paint['text-halo-color'] = '#1d120f';
+        paint['text-color'] = has(id, 'water', 'ocean', 'lake') ? '#4f7a7d' : '#5b4433';
+        paint['text-halo-color'] = '#faf5ec';
         paint['text-halo-width'] = 1.4;
-        if ('icon-color' in paint) paint['icon-color'] = '#d9a464';
+        if ('icon-color' in paint) paint['icon-color'] = '#9a6232';
         break;
       default:
         break;

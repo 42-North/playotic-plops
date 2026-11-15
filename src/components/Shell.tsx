@@ -29,7 +29,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <Mascot size={40} />
           <span className="brand-text">
             <span className="brand-name">Playotic Plops</span>
-            <span className="brand-tag">Find a place worth plopping.</span>
+            <span className="brand-tag">A crappy guide to good bathrooms.</span>
           </span>
         </Link>
         <nav className="top-nav" aria-label="Main">

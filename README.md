@@ -1,6 +1,6 @@
 # Playotic Plops
 
-*Find a place worth plopping.* A mobile-first, crowdsourced bathroom finder for travelers: gas stations, travel centers and public rest areas, rated in **plops** (1–5). No accounts, no emails, no photos, no trackers.
+*A crappy guide to good bathrooms.* A mobile-first, crowdsourced bathroom finder for travelers: gas stations, travel centers and public rest areas, rated in **plops** (1–5). No accounts, no emails, no photos, no trackers.
 
 - **Frontend:** React + TypeScript + Vite, MapLibre GL, hash routing. Static, hosted on GitHub Pages.
 - **Backend:** Supabase Postgres (schema, RLS, functions) and one Supabase Edge Function (`plops`) for all writes.

@@ -45,7 +45,7 @@ export function About() {
         <Mascot size={96} />
         <div>
           <h1>Playotic Plops</h1>
-          <p className="lede">Find a place worth plopping. A crowdsourced guide to clean, convenient public bathrooms for people on the road.</p>
+          <p className="lede">A crappy guide to good bathrooms: a crowdsourced guide to clean, convenient public bathrooms for people on the road.</p>
         </div>
       </div>
       <p>Playotic Plops covers <strong>gas stations, travel centers and public rest areas</strong>, the places where restrooms are generally open to travelers. It leaves out places where access is unclear, like hotel lobbies.</p>
