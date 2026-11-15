@@ -107,10 +107,10 @@ describe('app (demo mode)', () => {
     await screen.findByRole('heading', { name: 'Give a plop.' });
     // New door options are offered
     for (const label of ['Standard stall (gaps)', 'Nearly full door, no gaps', 'Floor-to-ceiling stall', 'Private room']) {
-      expect(screen.getByRole('radio', { name: label, exact: true })).toBeInTheDocument();
+      expect(screen.getByRole('radio', { name: label })).toBeInTheDocument();
     }
     await user.click(screen.getByRole('radio', { name: /^4 plops/ }));
-    await user.click(screen.getByRole('radio', { name: 'Floor-to-ceiling stall', exact: true }));
+    await user.click(screen.getByRole('radio', { name: 'Floor-to-ceiling stall' }));
     const bonus = within(screen.getByRole('group', { name: /Rate the food & store/ }));
     await user.click(bonus.getByRole('radio', { name: '2' }));
     await user.click(screen.getByRole('button', { name: /Submit 4 plops/ }));
